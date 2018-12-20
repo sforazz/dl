@@ -23,22 +23,22 @@ def data_preparation(data_dir):
     if len(images) != len(labels):
         raise Exception('Different number of images and labels.')
     
-    images = [nib.load(x).get_data()[:, :, i] for x in images[:10]
+    images = [nib.load(x).get_data()[:, :, i] for x in images[:100]
               for i in range(nib.load(x).get_data().shape[2])]
-    labels = [nib.load(x).get_data()[:, :, i] for x in labels[:10]
+    labels = [nib.load(x).get_data()[:, :, i] for x in labels[:100]
               for i in range(nib.load(x).get_data().shape[2])]
     images = np.asarray(images)
     labels = np.asarray(labels)
     
-    images = images.reshape(-1, 86,86,1)
-    labels = labels.reshape(-1, 86,86,1)
+    images = images.reshape(-1, 86, 86, 1)
+    labels = labels.reshape(-1, 86, 86, 1)
     
     images = (images-np.mean(images))/(np.std(images))
     
-    temp = np.zeros([860,96,96,1])
+    temp = np.zeros([images.shape[0], 96, 96, 1])
     temp[:,10:,10:,:] = images
     images = temp
-    temp1 = np.zeros([860,96,96,1])
+    temp1 = np.zeros([images.shape[0], 96, 96, 1])
     temp1[:,10:,10:,:] = labels
     labels = temp1
     train_X,valid_X,train_ground,valid_ground = train_test_split(images,
