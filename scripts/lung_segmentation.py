@@ -5,7 +5,6 @@ import glob
 import numpy as np
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler
 from keras.preprocessing.image import ImageDataGenerator
-from keras_contrib.losses import jaccard_distance
 #os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 SEED=42
 
@@ -15,6 +14,29 @@ def dice_coef(y_true, y_pred):
     y_pred_f = K.flatten(y_pred)
     intersection = K.sum(y_true_f * y_pred_f)
     return (2. * intersection + K.epsilon()) / (K.sum(y_true_f) + K.sum(y_pred_f) + K.epsilon())
+
+def jaccard_distance(y_true, y_pred, smooth=100):
+    """
+    Jaccard = (|X & Y|)/ (|X|+ |Y| - |X & Y|)
+            = sum(|A*B|)/(sum(|A|)+sum(|B|)-sum(|A*B|))
+    
+    The jaccard distance loss is usefull for unbalanced datasets. This has been
+    shifted so it converges on 0 and is smoothed to avoid exploding or disapearing
+    gradient.
+    
+    Ref: https://en.wikipedia.org/wiki/Jaccard_index
+    
+    @url: https://gist.github.com/wassname/f1452b748efcbeb4cb9b1d059dce6f96
+    @author: wassname
+    """
+    intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
+    sum_ = K.sum(K.abs(y_true) + K.abs(y_pred), axis=-1)
+    jac = (intersection + smooth) / (sum_ - intersection + smooth)
+    return jac
+
+
+def jaccard_loss(y_true, y_pred, smooth=100):
+    return (1-jaccard_distance(y_true, y_pred)) * smooth
 
 
 def data_preparation(data_dir):
@@ -82,7 +104,7 @@ image_batch, mask_batch = next(my_generator(train_X, train_ground, 8))
 #                             target_size=(86, 86, 86))
 
 model = mouse_lung_seg()
-model.compile(optimizer=Adam(2e-4), loss='binary_crossentropy', metrics=[jaccard_distance])
+model.compile(optimizer=Adam(2e-4), loss=jaccard_loss, metrics=[jaccard_distance])
 weight_saver = ModelCheckpoint('lung.h5', monitor='val_jaccard_distance', 
                                               save_best_only=True, save_weights_only=True)
 annealer = LearningRateScheduler(lambda x: 1e-3 * 0.8 ** x)
@@ -90,7 +112,7 @@ hist = model.fit_generator(my_generator(train_X, train_ground, 30),
                            steps_per_epoch = 200,
                            validation_data = (valid_X, valid_ground),
                            epochs=10, verbose=2,
-                           callbacks = [weight_saver])
+                           callbacks = [weight_saver, annealer])
 # model_checkpoint = ModelCheckpoint('unet_fibrosis.hdf5', monitor='loss',verbose=1, save_best_only=True)
 # model.fit(train_X, train_ground, batch_size=None, steps_per_epoch=1,epochs=150,callbacks=[model_checkpoint],validation_data=(valid_X, valid_ground), validation_steps=50)
 # 
