@@ -5,6 +5,7 @@ import glob
 import numpy as np
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler
 from keras.preprocessing.image import ImageDataGenerator
+from keras_contrib.losses import jaccard_distance
 #os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 SEED=42
 
@@ -81,8 +82,8 @@ image_batch, mask_batch = next(my_generator(train_X, train_ground, 8))
 #                             target_size=(86, 86, 86))
 
 model = mouse_lung_seg()
-model.compile(optimizer=Adam(2e-4), loss='binary_crossentropy', metrics=[dice_coef])
-weight_saver = ModelCheckpoint('lung.h5', monitor='val_dice_coef', 
+model.compile(optimizer=Adam(2e-4), loss='binary_crossentropy', metrics=[jaccard_distance])
+weight_saver = ModelCheckpoint('lung.h5', monitor='val_jaccard_distance', 
                                               save_best_only=True, save_weights_only=True)
 annealer = LearningRateScheduler(lambda x: 1e-3 * 0.8 ** x)
 hist = model.fit_generator(my_generator(train_X, train_ground, 30),
