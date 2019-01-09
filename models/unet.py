@@ -3,7 +3,7 @@ from keras.layers import *
 from keras.optimizers import *
 
 
-def mouse_lung_seg(pretrained_weights = None,input_size = (96,96,1)):
+def mouse_lung_seg(pretrained_weights = None, input_size = (96,96,1)):
 
     inputs = Input(input_size)
     conv1 = Conv2D(12, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(inputs)
