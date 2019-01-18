@@ -15,8 +15,8 @@ data_dir = '/home/fsforazz/Desktop/mouse_nifti'
 images = sorted(glob.glob(data_dir+'/Mouse*.nii*'))
 labels = sorted(glob.glob(data_dir+'/Mask*.nii*'))
 
-train_files = sorted(glob.glob(data_dir+'/training/*.png'))
-validation_files = sorted(glob.glob(data_dir+'/validation/*.png'))
+train_files = sorted(glob.glob(data_dir+'/training/*.png'))[:103000]
+validation_files = sorted(glob.glob(data_dir+'/validation/*.png'))[:25700]
 
 # train_indexs = random.sample(range(len(images)), 1500)
 # image_indexs = range(len(images))
@@ -29,8 +29,8 @@ pretrained_weights = None
 weights_name = 'lung_bs=60_spe=172_e=7_loss=bin_crossEntropy_metrics=jacc_dist_whole_dataset.h5'
 lr = 2e-4
 
-train_generator = image_generator(train_files, batch_size=100)
-validation_generator = image_generator(validation_files, batch_size=100)
+train_generator = image_generator(train_files, batch_size=103)
+validation_generator = image_generator(validation_files, batch_size=50)
 
 model = mouse_lung_seg(pretrained_weights=pretrained_weights)
 model.compile(optimizer=Adam(lr), loss='binary_crossentropy', metrics=[jaccard_distance])
@@ -38,9 +38,9 @@ weight_saver = ModelCheckpoint(weights_name, monitor='val_jaccard_distance',
                                save_best_only=True, save_weights_only=True)
 annealer = LearningRateScheduler(lambda x: 1e-3 * 0.8 ** x)
 hist = model.fit_generator(train_generator,
-                           steps_per_epoch=50,
+                           steps_per_epoch=1000,
                            validation_data=validation_generator,
-                           validation_steps=15,
+                           validation_steps=514,
                            epochs=n_epochs, verbose=2,
                            callbacks = [weight_saver, annealer])
 # for i in range(10):
