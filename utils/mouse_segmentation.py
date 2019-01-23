@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 
-def data_preparation(images, labels=None):
+def data_preparation(images, labels=None, preproc='zscore'):
     
     n_images = len(images)
     images = [nib.load(x).get_data()[:, :, i] for x in images
@@ -11,7 +11,12 @@ def data_preparation(images, labels=None):
     
     images = np.asarray(images)
     images = images.reshape(-1, 86, 86, 1)
-    images = (images-np.mean(images))/(np.std(images))
+    if preproc == 'zscore':
+        images = (images-np.mean(images))/(np.std(images))
+    elif preproc == 'zero-one':
+        images = images.astype('float64')
+        images -= np.min(images)
+        images /= (np.max(images)-np.min(images))
     temp = np.zeros([images.shape[0], 96, 96, 1])
     temp[:,10:,10:,:] = images
     images = temp
@@ -47,3 +52,34 @@ def save_results(image, ref, outname):
     image = np.swapaxes(image, 0, 1)
     im2save = nib.Nifti1Image(image, ref.affine)
     nib.save(im2save, outname)
+
+
+def preprocessing(image, label=False):
+    
+    image = image.astype('float64')
+    image = image.reshape(86, 86, 1)
+    if not label:
+        image -= np.min(image)
+        image /= (np.max(image)-np.min(image))
+    temp = np.zeros([96, 96, 1])
+    temp[10:,10:,:] = image
+    image = temp
+    
+    return image
+
+
+def data_load(x_train, y_train):
+    
+    data_train = []
+    for el in x_train:
+        im = nib.load(el).get_data()
+        im = preprocessing(nib.load(el).get_data())
+        data_train.append(im)
+    
+    label_train = []
+    for el in y_train:
+        im = nib.load(el).get_data()
+        im = preprocessing(im)
+        label_train.append(im)
+    
+    return data_train, label_train

@@ -2,12 +2,11 @@ import random
 import numpy as np
 import nibabel as nib
 import glob
-import matplotlib.pyplot as plot
 import multiprocessing
 import os
 
 
-def save_png(args):
+def save_nii(args):
     
     images = args[0] 
     el = args[1] 
@@ -15,14 +14,19 @@ def save_png(args):
     val_list = args[3]
     data_dir = args[4]
     print('Processing {}'.format(images[el]))
-    im = nib.load(images[el]).get_data() 
+    ref = nib.load(images[el])
+    im = nib.load(images[el]).get_data()
+    basename = os.path.basename(images[el]).split('.')[0]
     for s in range(im.shape[2]): 
-        plot.imshow(im[:,:,s], cmap='gray') 
-        if el not in val_list: 
-            plot.savefig(data_dir+'/training/Mask_{}.png'.format(str(n_slice[s]).zfill(8))) 
-        else: 
-            plot.savefig(data_dir+'/validation/Mask_{}.png'.format(str(n_slice[s]).zfill(8))) 
-        plot.close()
+#         plot.imshow(im[:,:,s], cmap='gray')
+        im2save = nib.Nifti1Image(im[:, :, s], affine=ref.affine)
+        if el not in val_list:
+            nib.save(im2save, data_dir+'/training_nifti_2/{0}_{1}.nii.gz'.format(basename, str(s).zfill(8)))
+#             plot.savefig(data_dir+'/training/Mask_{}.png'.format(str(n_slice[s]).zfill(8))) 
+        else:
+            nib.save(im2save, data_dir+'/validation_nifti_2/{0}_{1}.nii.gz'.format(basename, str(s).zfill(8)))
+#             plot.savefig(data_dir+'/validation/Mask_{}.png'.format(str(n_slice[s]).zfill(8))) 
+#         plot.close()
 
 data_dir = '/home/fsforazz/Desktop/mouse_nifti'
 images = sorted(glob.glob(data_dir+'/Mouse_0*.nii.gz'))
@@ -66,5 +70,6 @@ for n_slice in n_slices_tot:
     z = z+n_slice 
 
 print('Starting multiprocessing...')
-p = multiprocessing.Pool(processes=3)
-p.map(save_png, zip([masks]*1500, train_indexs, slice_indexs, [val_indexs]*1500, [data_dir]*1500)) 
+p = multiprocessing.Pool(processes=4)
+p.map(save_nii, zip([masks]*1500, train_indexs, slice_indexs, [val_indexs]*1500, [data_dir]*1500))
+# save_png([masks, train_indexs[0], slice_indexs[0], val_indexs, data_dir])

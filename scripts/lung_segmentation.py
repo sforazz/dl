@@ -1,70 +1,43 @@
-from models.unet import mouse_lung_seg, UNet
-from keras.callbacks import ModelCheckpoint, LearningRateScheduler
+from models.unet import mouse_lung_seg, mouse_lung_seg_less_feat
+from keras.callbacks import LearningRateScheduler
 from losses.jaccard import jaccard_distance
-from utils.filemanip import data_generator, image_generator
-from utils.mouse_segmentation import data_preparation
+from utils.filemanip import data_prep_train_on_batch
 from keras.optimizers import Adam
 import glob
-import random
+from random import shuffle
 
 
 SEED=42
 
 data_dir = '/home/fsforazz/Desktop/mouse_nifti'
 
-images = sorted(glob.glob(data_dir+'/Mouse*.nii*'))
-labels = sorted(glob.glob(data_dir+'/Mask*.nii*'))
+train_files = (sorted(glob.glob(data_dir+'/training_nifti_2/Mouse*.nii.gz'))[:102000])
+validation_files = (sorted(glob.glob(data_dir+'/validation_nifti_2/Mouse*.nii.gz'))[:25700])
 
-train_files = sorted(glob.glob(data_dir+'/training/*.png'))[:103000]
-validation_files = sorted(glob.glob(data_dir+'/validation/*.png'))[:25700]
 
-# train_indexs = random.sample(range(len(images)), 1500)
-# image_indexs = range(len(images))
-# test_indexs = [x for x in image_indexs if x not in train_indexs]
-# with open(data_dir+'/images_for_test.txt', 'w') as f:
-#     for ind in test_indexs:
-#         f.write(images[ind]+'\n')
-n_epochs = 7
-pretrained_weights = None
-weights_name = 'lung_bs=60_spe=172_e=7_loss=bin_crossEntropy_metrics=jacc_dist_whole_dataset.h5'
+n_epochs = 15
+weights_name = 'lung_bs=60_spe=172_e=30_loss=bin_crossEntropy_metrics=jacc_dist_whole_dataset_new.h5'
 lr = 2e-4
 
-train_generator = image_generator(train_files, batch_size=103)
-validation_generator = image_generator(validation_files, batch_size=50)
-
-model = mouse_lung_seg(pretrained_weights=pretrained_weights)
+model = mouse_lung_seg()
 model.compile(optimizer=Adam(lr), loss='binary_crossentropy', metrics=[jaccard_distance])
-weight_saver = ModelCheckpoint(weights_name, monitor='val_jaccard_distance', 
-                               save_best_only=True, save_weights_only=True)
-annealer = LearningRateScheduler(lambda x: 1e-3 * 0.8 ** x)
-hist = model.fit_generator(train_generator,
-                           steps_per_epoch=1000,
-                           validation_data=validation_generator,
-                           validation_steps=514,
-                           epochs=n_epochs, verbose=2,
-                           callbacks = [weight_saver, annealer])
-# for i in range(10):
-#     print('Starting training with batch {}'.format(i+1))
-#     if i != 0:
-#         pretrained_weights = weights_name
-#         n_epochs = 2
-#         lr = lr/2
-#     images_batch = [images[x] for x in train_indexs[i*150:(i+1)*150]]
-#     labels_batch = [labels[x] for x in train_indexs[i*150:(i+1)*150]]
-#     train_X,valid_X,train_ground,valid_ground = data_preparation(images_batch, labels=labels_batch)
-# 
-#     model = mouse_lung_seg(pretrained_weights=pretrained_weights)
-# #     if i != 0:
-# #         
-#     model.compile(optimizer=Adam(lr), loss='binary_crossentropy', metrics=[jaccard_distance])
-#     weight_saver = ModelCheckpoint(weights_name, monitor='val_jaccard_distance', 
-#                                    save_best_only=True, save_weights_only=True)
-#     annealer = LearningRateScheduler(lambda x: 1e-3 * 0.8 ** x)
-#     hist = model.fit_generator(data_generator(train_X, train_ground, 60, seed=SEED),
-#                                steps_per_epoch = 172,
-#                                validation_data = (valid_X, valid_ground),
-#                                epochs=n_epochs, verbose=2,
-#                                callbacks = [weight_saver, annealer])
 
-results = model.predict(validation_generator)
-# saveResult("/home/fsforazz/Desktop/mouse_nifti",results)
+annealer = LearningRateScheduler(lambda x: 1e-3 * 0.8 ** x)
+
+for e in range(n_epochs):
+
+    print('Epoch {}'.format(str(e+1)))
+    shuffle(train_files)
+    shuffle(validation_files)
+    for ts in range(2000):
+        files = train_files[ts*51:(ts+1)*51]
+        x, y = data_prep_train_on_batch(files)
+        training_loss = model.train_on_batch(x, y)
+    print('Training loss: {0}. Jaccard distance: {1}'.format(training_loss[0], training_loss[1]))
+    for vs in range(514):
+        files = validation_files[vs*50:(vs+1)*50]
+        x, y = data_prep_train_on_batch(files)
+        valdation_loss = model.test_on_batch(x, y)
+    print('Validation loss: {0}. Jaccard distance: {1}'.format(valdation_loss[0], valdation_loss[1]))
+
+    model.save_weights('double_feat_per_layer_epoch_{}.h5'.format(str(e+1)))
