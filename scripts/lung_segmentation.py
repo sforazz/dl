@@ -1,4 +1,4 @@
-from models.unet import mouse_lung_seg, mouse_lung_seg_less_feat
+from models.unet import mouse_lung_seg
 from keras.callbacks import LearningRateScheduler
 from losses.jaccard import jaccard_distance
 from utils.filemanip import data_prep_train_on_batch

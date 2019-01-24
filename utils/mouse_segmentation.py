@@ -1,6 +1,7 @@
 import nibabel as nib
 import numpy as np
 from sklearn.model_selection import train_test_split
+import os
 
 
 def data_preparation(images, labels=None, preproc='zscore'):
@@ -44,9 +45,15 @@ def data_preparation(images, labels=None, preproc='zscore'):
         return images
 
 
-def save_results(image, ref, outname):
+def save_results(im2save, ref, save_dir):
     
-    image = image[:, 10:, 10:, :]
+    basename = os.path.basename(ref).split('.')[0]
+    out_basename = basename+'_lung_seg.nii.gz'
+    outname = os.path.join(save_dir, out_basename)
+
+    ref = nib.load(ref)
+
+    image = im2save[:, 10:, 10:]
     image = image.reshape(-1, 86, 86)
     image = np.swapaxes(image, 0, 2)
     image = np.swapaxes(image, 0, 1)
