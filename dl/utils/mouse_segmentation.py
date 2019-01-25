@@ -73,20 +73,3 @@ def preprocessing(image, label=False):
     image = temp
     
     return image
-
-
-def data_load(x_train, y_train):
-    
-    data_train = []
-    for el in x_train:
-        im = nib.load(el).get_data()
-        im = preprocessing(nib.load(el).get_data())
-        data_train.append(im)
-    
-    label_train = []
-    for el in y_train:
-        im = nib.load(el).get_data()
-        im = preprocessing(im)
-        label_train.append(im)
-    
-    return data_train, label_train

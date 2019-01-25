@@ -1,12 +1,14 @@
-from models.unet import mouse_lung_seg
+from dl.models.unet import mouse_lung_seg
 from keras.callbacks import LearningRateScheduler
-from losses.jaccard import jaccard_distance
-from utils.filemanip import data_prep_train_on_batch
+from dl.losses.jaccard import jaccard_distance
+from dl.generators import data_prep_train_on_batch
 from keras.optimizers import Adam
 import glob
 from random import shuffle
 import math
+import time
 
+start = time.perf_counter()
 
 data_dir = '/home/fsforazz/Desktop/mouse_nifti'
 train_files = (sorted(glob.glob(data_dir+'/training_nifti_2/Mouse*.nii.gz')))#[:102000])
@@ -52,3 +54,7 @@ for e in range(n_epochs):
 
     print('Saving network weights...')
     model.save_weights('double_feat_per_layer_epoch_{}.h5'.format(str(e+1)))
+
+stop = time.perf_counter()
+print('\nAll done!'),
+print('Elapsed time: {} seconds'.format(int(stop-start)))
