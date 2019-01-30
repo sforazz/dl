@@ -10,7 +10,7 @@ import time
 
 start = time.perf_counter()
 
-data_dir = '/home/fsforazz/Desktop/mouse_nifti'
+data_dir = '/media/fsforazz/extra_HD/new_workstation/mouse_nifti'
 train_files = (sorted(glob.glob(data_dir+'/training_nifti_2/Mouse*.nii.gz')))#[:102000])
 validation_files = (sorted(glob.glob(data_dir+'/validation_nifti_2/Mouse*.nii.gz')))#[:25700])
 
