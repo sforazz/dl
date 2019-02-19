@@ -6,8 +6,8 @@ import numpy as np
 import time
 
 
-model_weights = ('/media/fsforazz/extra_HD/new_workstation/PhD_project/fibrosis_project/working_weights_lung_seg/double_feat_per_layer_epoch_10_best.h5')
-images = '/media/fsforazz/extra_HD/mouse_nifti/images_for_test2.txt'
+model_weights = ('/home/fsforazz/git/deep_learning/scripts/double_feat_per_layer_epoch_11.h5')
+images = '/home/fsforazz/Desktop/mouse_nifti/images_for_test2.txt'
 save_dir = '/home/fsforazz/Desktop/mouse_segmentation_results'
 
 start = time.perf_counter()

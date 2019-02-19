@@ -1,5 +1,4 @@
 from dl.models.unet import mouse_lung_seg
-from keras.callbacks import LearningRateScheduler
 from dl.losses.jaccard import jaccard_distance
 from dl.generators import data_prep_train_on_batch
 from keras.optimizers import Adam

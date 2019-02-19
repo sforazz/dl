@@ -2,6 +2,8 @@ import nibabel as nib
 import numpy as np
 import glob
 import matplotlib.pyplot as plot
+from core.process.postprocess import eucl_max
+from core.utils.plot import violin_box_plot
 
 
 def dice_calculation(gt, seg):
@@ -18,6 +20,17 @@ def dice_calculation(gt, seg):
     return dice
 
 
+def save_difference(gt, seg):
+    
+    outname = gt.split('/')[-1].split('.')[0]+'_diff.nii.gz'
+    gt1 = nib.load(gt).get_data() 
+    seg = nib.load(seg).get_data() 
+    seg = np.squeeze(seg)
+    diff = gt1 - seg
+    im2save = nib.Nifti1Image(diff, affine=nib.load(gt).affine)
+    nib.save(im2save, '/home/fsforazz/Desktop/mouse_diff_images/{}'.format(outname))
+
+
 def outliers_modified_z_score(ys):
 
     ys = np.asarray(ys)
@@ -31,14 +44,23 @@ def outliers_modified_z_score(ys):
 
 
 refs = sorted(glob.glob('/home/fsforazz/Desktop/mouse_nifti/Mask_0*.nii.gz'))
-segs = sorted(glob.glob('/home/fsforazz/Desktop/mouse_segmentation_results/*.nii.gz'))
+segs = sorted(glob.glob('/home/fsforazz/Desktop/mouse_segmentation_results/best_network_results/*.nii.gz'))
 all_dices = []
+all_hd = []
+all_hd95 = []
 
 for seg in segs: 
     seg_num = seg.split('/')[-1].split('_')[1] 
     ref = [x for x in refs if seg_num in x][0] 
-    dice = dice_calculation(ref, seg) 
+    dice = dice_calculation(ref, seg)
+    save_difference(ref, seg)
+    hd_rs = eucl_max(ref, seg)
+    hd_sr = eucl_max(seg, ref)
+    hd95_rs = eucl_max(ref, seg, percentile=99)
+    hd95_sr = eucl_max(seg, ref, percentile=99)
     all_dices.append(dice)
+    all_hd.append(np.max([hd_rs, hd_sr]))
+    all_hd95.append(np.max([hd95_rs, hd95_sr]))
 
 outliers = outliers_modified_z_score(all_dices)
 print('Mean DSC: {0} \nMedian DSC: {4} \nStd: {1} \nMax DSC: {2}\nMin DSC: {3}'
@@ -47,10 +69,7 @@ print('Mean DSC: {0} \nMedian DSC: {4} \nStd: {1} \nMax DSC: {2}\nMin DSC: {3}'
 for ol in outliers[0]:
     print('Outlier: {0}, DSC: {1}'.format(segs[ol], all_dices[ol]))
 
-plot.hist(all_dices, bins=30)
-plot.ylabel('Frequency')
-plot.xlabel('Dice Score')
-plot.savefig('histogram.png')
-plot.close()
+violin_box_plot(all_dices)
+plot.violinplot(all_hd)
 
 print('Done!')
