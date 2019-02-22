@@ -44,7 +44,7 @@ def outliers_modified_z_score(ys):
 
 
 refs = sorted(glob.glob('/home/fsforazz/Desktop/mouse_nifti/Mask_0*.nii.gz'))
-segs = sorted(glob.glob('/home/fsforazz/Desktop/mouse_segmentation_results/best_network_results/*.nii.gz'))
+segs = sorted(glob.glob('/home/fsforazz/Desktop/mouse_segmentation_results/*.nii.gz'))
 all_dices = []
 all_hd = []
 all_hd95 = []

@@ -1,5 +1,5 @@
 from dl.models.unet import mouse_lung_seg
-from dl.losses.jaccard import jaccard_distance
+from dl.losses.jaccard import jaccard_distance, jaccard_distance_loss
 from dl.generators import data_prep_train_on_batch
 from keras.optimizers import Adam
 import glob
@@ -11,12 +11,22 @@ import numpy as np
 
 def run_batch(batch_files, s, batch_size):
 
-    files = batch_files[s*batch_size:(s+1)*batch_size]
+    indexes = sample(range(len(batch_files)), batch_size)
+    files = [batch_files[x] for x in indexes]
     x, y = data_prep_train_on_batch(files)
     hist = model.train_on_batch(x, y)
     
     return hist
 
+
+def run_batch_val(batch_files, s, batch_size):
+
+    indexes = sample(range(len(batch_files)), batch_size)
+    files = [batch_files[x] for x in indexes]
+    x, y = data_prep_train_on_batch(files)
+    hist = model.test_on_batch(x, y)
+    
+    return hist
 
 start = time.perf_counter()
 
@@ -24,15 +34,17 @@ data_dir = '/home/fsforazz/Desktop/mouse_nifti'
 train_files = (sorted(glob.glob(data_dir+'/training_nifti_2/Mouse*.nii.gz')))#[:102000])
 validation_files = (sorted(glob.glob(data_dir+'/validation_nifti_2/Mouse*.nii.gz')))#[:25700])
 
-n_epochs = 15
+n_epochs = 100
 training_bs = 51
 validation_bs = 50
-training_steps = math.ceil(len(train_files)/training_bs)
-validation_steps = math.ceil(len(validation_files)/validation_bs)
+# training_steps = math.ceil(len(train_files)/training_bs)
+# validation_steps = math.ceil(len(validation_files)/validation_bs)
+training_steps = 200
+validation_steps = 150
 lr = 2e-4
 
 model = mouse_lung_seg()
-model.compile(optimizer=Adam(lr), loss='binary_crossentropy', metrics=[jaccard_distance])
+model.compile(optimizer=Adam(lr), loss=jaccard_distance_loss, metrics=['accuracy'])
 
 
 for e in range(n_epochs):
@@ -56,7 +68,7 @@ for e in range(n_epochs):
         training_loss.append(hist[0])
         training_jd.append(hist[1])
         if ts in validation_index:
-            hist = run_batch(validation_files, vs, validation_bs)
+            hist = run_batch_val(validation_files, vs, validation_bs)
             validation_loss.append(hist[0])
             validation_jd.append(hist[1])
             vs = vs+1
@@ -67,7 +79,7 @@ for e in range(n_epochs):
     print('Validation loss: {0}. Jaccard distance: {1}'.format(np.mean(validation_loss), np.mean(validation_jd)))
 
     print('Saving network weights...')
-    model.save_weights('double_feat_per_layer_epoch_{}.h5'.format(str(e+1)))
+    model.save_weights('double_feat_per_layer_epoch_{}_new.h5'.format(str(e+1)))
 
 stop = time.perf_counter()
 print('\nAll done!'),
