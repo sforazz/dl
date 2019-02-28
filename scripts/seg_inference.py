@@ -7,8 +7,8 @@ import time
 
 
 model_weights = ('/home/fsforazz/Desktop/PhD_project/fibrosis_project/working_weights_lung_seg/double_feat_per_layer_epoch_10_best.h5')
-images = '/home/fsforazz/Desktop/test_set.txt'
-save_dir = '/home/fsforazz/Desktop/mouse_segmentation_results_new'
+images = '/home/fsforazz/Desktop/new_mouse_cheng.txt'
+save_dir = '/home/fsforazz/Desktop/seg_results_cheng'
 
 start = time.perf_counter()
 with open(images, 'r') as f:
@@ -37,7 +37,7 @@ print('\nBinarizing and saving the results...')
 for i, s in enumerate(n_slices):
     im = prediction[z:z+s, :, :, 0]
     im = binarization(im)
-    save_results(im, list_images[i], save_dir)
+    save_results(im, list_images[i])
     z = z + s
 
 stop = time.perf_counter()

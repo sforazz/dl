@@ -14,8 +14,11 @@ def dice_calculation(gt, seg):
     gt = gt.astype('uint16')
     seg = seg.astype('uint16')
     vox_gt = np.sum(gt) 
-    vox_seg = np.sum(seg) 
-    common = np.sum(gt & seg) 
+    vox_seg = np.sum(seg)
+    try:
+        common = np.sum(gt & seg)
+    except:
+        print(gt)
     dice = (2*common)/(vox_gt+vox_seg) 
     return dice
 
@@ -43,15 +46,21 @@ def outliers_modified_z_score(ys):
     return np.where(np.abs(modified_z_scores) > threshold)
 
 
-refs = sorted(glob.glob('/home/fsforazz/Desktop/mouse_nifti/Mask_0*.nii.gz'))
-segs = sorted(glob.glob('/home/fsforazz/Desktop/mouse_segmentation_results/*.nii.gz'))
+# refs = sorted(glob.glob('/home/fsforazz/Desktop/mouse_nifti/Mask_0*.nii.gz'))
+# segs = sorted(glob.glob('/home/fsforazz/Desktop/mouse_segmentation_results/*.nii.gz'))
+with open('/home/fsforazz/Desktop/all_refs.txt', 'r') as f:
+    refs = [x.strip() for x in f]
+with open('/home/fsforazz/Desktop/all_cnns.txt', 'r') as f:
+    segs = [x.strip() for x in f]
+
 all_dices = []
 all_hd = []
 all_hd95 = []
 
-for seg in segs: 
-    seg_num = seg.split('/')[-1].split('_')[1] 
-    ref = [x for x in refs if seg_num in x][0] 
+for i, seg in enumerate(segs): 
+#     seg_num = seg.split('/')[-1].split('_')[1] 
+#     ref = [x for x in refs if seg_num in x][0]
+    ref = refs[i]
     dice = dice_calculation(ref, seg)
     save_difference(ref, seg)
     hd_rs = eucl_max(ref, seg)

@@ -45,11 +45,15 @@ def data_preparation(images, labels=None, preproc='zscore'):
         return images
 
 
-def save_results(im2save, ref, save_dir):
+def save_results(im2save, ref, save_dir=None):
     
-    basename = os.path.basename(ref).split('.')[0]
-    out_basename = basename+'_lung_seg.nii.gz'
-    outname = os.path.join(save_dir, out_basename)
+    basedir, basename = os.path.split(ref)
+    out_basename = basename.split('.')[0]+'_lung_seg.nii.gz'
+    if save_dir is not None:
+        outname = os.path.join(save_dir, out_basename)
+    else:
+        outname = os.path.join(basedir, out_basename)
+    
 
     ref = nib.load(ref)
 
