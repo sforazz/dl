@@ -43,3 +43,18 @@ def jaccard_distance_loss(y_true, y_pred, smooth=100):
     sum_ = K.sum(K.abs(y_true) + K.abs(y_pred), axis=-1)
     jac = (intersection + smooth) / (sum_ - intersection + smooth)
     return (1 - jac) * smooth
+
+
+def soft_dice_loss(y_pred, y_true, eps=1e-7):
+    '''
+    c is number of classes
+    :param y_pred: b x c x X x Y( x Z...) network output, must sum to 1 over c channel (such as after softmax)
+    :param y_true: b x c x X x Y( x Z...) one hot encoding of ground truth
+    :param eps: 
+    :return: 
+    '''
+    
+    axes = tuple(range(2, len(y_pred.shape)))
+    intersect = K.sum(y_pred * y_true, axes)
+    denom = K.sum(y_pred + y_true, axes)
+    return - K.mean(2. *intersect / (denom + eps))
