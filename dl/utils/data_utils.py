@@ -188,11 +188,22 @@ def load_data(data_dir, data_type, image_data_format, img_width=256, img_height=
     return final_facade_photos, final_facade_labels
 
 
-def load_data_3D(data_dir, data_type, image_data_format, img_width=128, img_height=128, img_depth=128, mb=[3, 3, 2]):
+def load_data_3D(data_dir, data_type, image_data_format, img_width=128, img_height=128, img_depth=128, mb=[3, 3, 2], bs=None,
+                 init=None):
 
         # Get all .h5 files containing training images
     facade_photos_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'A')))
     facade_labels_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'B')))
+    if bs is not None and init is not None:
+        facade_photos_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'A')))[init:bs]
+        facade_labels_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'B')))[init:bs]
+    elif bs is not None and init is None:
+        idx = np.random.choice(len(facade_photos_h5), bs, replace=False)
+        facade_photos_h5 = [facade_photos_h5[x] for x in idx]
+        facade_labels_h5 = [facade_labels_h5[x] for x in idx]
+    else:
+        facade_photos_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'A')))
+        facade_labels_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'B')))
 #     facade_labels_h5 = [f for f in os.listdir(os.path.join(data_dir_path, 'facades')) if '.h5' in f]
     dx = 320
     dy = 320
@@ -383,13 +394,13 @@ def get_disc_batch(X_full_batch, X_sketch_batch, generator_model, batch_counter,
     return X_disc, y_disc
 
 
-def plot_generated_batch(X_full, X_sketch, generator_model, num_epoch, dict_val, d3=False):
+def plot_generated_batch(X_full, X_sketch, generator_model, num_epoch, dict_val, dset, d3=False):
 
     # Generate images
     X_gen = generator_model.predict(X_full)
 
     if d3:
-        save_images_3D(X_full, X_sketch, X_gen, dict_val, num_epoch)
+        save_images_3D(X_full, X_sketch, X_gen, dict_val, num_epoch, dset)
     else:
         save_images(X_full, X_sketch, X_gen, num_epoch)
 #     X_sketch = inverse_normalization(X_sketch)
@@ -438,7 +449,7 @@ def save_images(real_images, real_sketches, generated_images, num_epoch):
         nib.save(im2save, '/mnt/sdb/logs_gan/results_im/{0}_epoch_{1}.nii.gz'.format(names[i], num_epoch))
 
 
-def save_images_3D(real_images, real_sketches, generated_images, dict_val, num_epoch):
+def save_images_3D(real_images, real_sketches, generated_images, dict_val, num_epoch, dset):
 
     names = ['T1KM', 'FLAIR', 'FLAIR_gen']
     im_shape = dict_val['im_size']
@@ -458,7 +469,7 @@ def save_images_3D(real_images, real_sketches, generated_images, dict_val, num_e
         final_image[final_image==-2] = np.nan
         final_image = np.nanmean(final_image, axis=3)
         im2save = nib.Nifti1Image(final_image, affine=np.eye(4))
-        nib.save(im2save, '/mnt/sdb/logs_gan/results_im/{0}_epoch_{1}.nii.gz'.format(names[n_image], num_epoch))
+        nib.save(im2save, '{2}/results_im/{0}_epoch_{1}.nii.gz'.format(names[n_image], num_epoch, dset))
 
 #     for j, image in enumerate([real_images, real_sketches, generated_images]):
 #         final_image = np.zeros((320, 320, 168, 8))*-2

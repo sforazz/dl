@@ -43,6 +43,8 @@ def train(**kwargs):
     do_plot = kwargs["do_plot"]
     logging_dir = kwargs["logging_dir"]
     save_every_epoch = kwargs["epoch"]
+    use_generator = kwargs["use_generator"]
+    img_dim = kwargs["img_dim"]
     
     epoch_size = n_batch_per_epoch * batch_size
     lr_init = 2E-4
@@ -53,28 +55,35 @@ def train(**kwargs):
     tensorboard = TensorBoard(log_dir="logs/tensorboard".format(time.time()))
 
     # Load and rescale data
-    try:
-        X_full_train = np.load(os.path.join(dset, 'training_T1.npy'))
-        X_sketch_train = np.load(os.path.join(dset, 'training_FLAIR.npy'))
-    except:
-        X_full_train, X_sketch_train, _ = data_utils.load_data_3D(dset, 'train', image_data_format)
-        np.save(os.path.join(dset, 'training_T1.npy'), X_full_train)
-        np.save(os.path.join(dset, 'training_FLAIR.npy'), X_sketch_train)
-    try:
-        X_full_val = np.load(os.path.join(dset, 'validation_T1.npy'))
-        X_sketch_val = np.load(os.path.join(dset, 'validation_FLAIR.npy'))
-        with open(os.path.join(dset, 'validation_dict.pkl'), 'rb') as f:
-            dict_val = pickle.load(f)
-    except:
-        X_full_val, X_sketch_val, dict_val = data_utils.load_data_3D(dset, 'test', image_data_format)
-        np.save(os.path.join(dset, 'validation_T1.npy'), X_full_val)
-        np.save(os.path.join(dset, 'validation_FLAIR.npy'), X_sketch_val)
-        with open(os.path.join(dset, 'validation_dict.pkl'), 'wb') as f:
-            pickle.dump(dict_val, f)
-    img_dim = X_full_train.shape[-4:]
-
-    # Get the number of non overlapping patch and the size of input image to the discriminator
-    nb_patch, img_dim_disc = data_utils.get_nb_patch_3D(img_dim, patch_size, image_data_format)
+    if not use_generator:
+        try:
+            X_full_train = np.load(os.path.join(dset, 'training_T1.npy'))
+            X_sketch_train = np.load(os.path.join(dset, 'training_FLAIR.npy'))
+        except:
+            X_full_train, X_sketch_train, _ = data_utils.load_data_3D(dset, 'train', image_data_format)
+            np.save(os.path.join(dset, 'training_T1.npy'), X_full_train)
+            np.save(os.path.join(dset, 'training_FLAIR.npy'), X_sketch_train)
+        try:
+            X_full_val = np.load(os.path.join(dset, 'validation_T1.npy'))
+            X_sketch_val = np.load(os.path.join(dset, 'validation_FLAIR.npy'))
+            with open(os.path.join(dset, 'validation_dict.pkl'), 'rb') as f:
+                dict_val = pickle.load(f)
+        except:
+            X_full_val, X_sketch_val, dict_val = data_utils.load_data_3D(dset, 'test', image_data_format)
+            np.save(os.path.join(dset, 'validation_T1.npy'), X_full_val)
+            np.save(os.path.join(dset, 'validation_FLAIR.npy'), X_sketch_val)
+            with open(os.path.join(dset, 'validation_dict.pkl'), 'wb') as f:
+                pickle.dump(dict_val, f)
+        img_dim = X_full_train.shape[-4:]
+    
+        # Get the number of non overlapping patch and the size of input image to the discriminator
+        nb_patch, img_dim_disc = data_utils.get_nb_patch_3D(img_dim, patch_size, image_data_format)
+    else:
+        try:
+            img_dim = img_dim
+            nb_patch, img_dim_disc = data_utils.get_nb_patch_3D(img_dim, patch_size, image_data_format)
+        except:
+            raise Exception('If you use data generator you must specify the image dimensions (for example, (128, 128, 128, 1)).')
 
     try:
 
@@ -128,8 +137,12 @@ def train(**kwargs):
 
         decay = 1
         z = 0
-        init = True
+        init = 0
         for e in range(nb_epoch):
+            if use_generator:
+                X_full_train, X_sketch_train, _ = data_utils.load_data_3D(dset, 'train', image_data_format, bs=batch_size)
+                X_full_val, X_sketch_val, dict_val = data_utils.load_data_3D(dset, 'test', image_data_format, bs=batch_size)
+
             # Initialize progbar and batch counter
             progbar = generic_utils.Progbar(epoch_size)
             batch_counter = 1
@@ -206,7 +219,7 @@ def train(**kwargs):
                     # Get new images from validation
                     idx = random.sample(np.arange(0, X_full_val.shape[0], 18).tolist(), 1)
                     data_utils.plot_generated_batch(X_full_val[idx[0]:idx[0]+18, :], X_sketch_val[idx[0]:idx[0]+18, :],
-                                                    generator_model, e, dict_val[idx[0]//18], d3=True)
+                                                    generator_model, e, dict_val[idx[0]//18], logging_dir, d3=True)
 #                     X_full_batch, X_sketch_batch = next(data_utils.gen_batch(X_full_val, X_sketch_val, batch_size))
 #                     data_utils.plot_generated_batch(X_full_batch, X_sketch_batch, generator_model, e, d3=True)
 
@@ -238,7 +251,7 @@ def launch_training(**kwargs):
 
 d_params = {"dset": "/mnt/sdb/data_T1_to_FLAIR_normalized", #"/mnt/sdb/brats_normalized/", 
             "generator": 'upsampling',
-            "batch_size": 1,
+            "batch_size": 6,
             "n_batch_per_epoch": 100,
             "nb_epoch": 201,
             "model_name": "brats",
@@ -247,12 +260,13 @@ d_params = {"dset": "/mnt/sdb/data_T1_to_FLAIR_normalized", #"/mnt/sdb/brats_nor
             "do_plot": False,
             "image_data_format": "channels_last",
             "bn_mode": 2,
-            "img_dim": 256,
+            "img_dim": (128, 128, 128, 1),
             "use_label_smoothing": True,
             "label_flipping": 0.7,
             "patch_size": (32, 32, 32),
             "use_mbd": True,
-            "logging_dir": '/mnt/sdb/logs_gan/'
+            "logging_dir": '/mnt/sdb/logs_gan/',
+            "use_generator": True
             }
 
 launch_training(**d_params)
