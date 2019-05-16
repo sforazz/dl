@@ -1,0 +1,57 @@
+import os
+import tensorflow as tf
+
+
+def remove_files(files):
+    """
+    Remove files from disk
+    args: files (str or list) remove all files in 'files'
+    """
+
+    if isinstance(files, (list, tuple)):
+        for f in files:
+            if os.path.isfile(os.path.expanduser(f)):
+                os.remove(f)
+    elif isinstance(files, str):
+        if os.path.isfile(os.path.expanduser(files)):
+            os.remove(files)
+
+
+def create_dir(dirs):
+    """
+    Create directory
+    args: dirs (str or list) create all dirs in 'dirs'
+    """
+
+    if isinstance(dirs, (list, tuple)):
+        for d in dirs:
+            if not os.path.exists(os.path.expanduser(d)):
+                os.makedirs(d)
+    elif isinstance(dirs, str):
+        if not os.path.exists(os.path.expanduser(dirs)):
+            os.makedirs(dirs)
+
+
+def setup_logging(model_name, logging_dir='../../'):
+    
+    # Output path where we store experiment log and weights
+    model_dir = os.path.join(logging_dir, 'models', model_name)
+
+    fig_dir = os.path.join(logging_dir, 'figures')
+    
+    # Create if it does not exist
+    create_dir([model_dir, fig_dir])
+    
+
+def write_log(callback, name, loss, batch_no):
+    """
+    Write training summary to TensorBoard
+    """
+    # for name, value in zip(names, logs):
+    summary = tf.Summary()
+    summary_value = summary.value.add()
+    summary_value.simple_value = loss
+    summary_value.tag = name
+    callback.writer.add_summary(summary, batch_no)
+    callback.writer.flush()
+
