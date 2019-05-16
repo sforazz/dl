@@ -63,6 +63,8 @@ def train(**kwargs):
     try:
         X_full_val = np.load(os.path.join(dset, 'validation_T1.npy'))
         X_sketch_val = np.load(os.path.join(dset, 'validation_FLAIR.npy'))
+        with open(os.path.join(dset, 'validation_dict.pkl'), 'rb') as f:
+            dict_val = pickle.load(f)
     except:
         X_full_val, X_sketch_val, dict_val = data_utils.load_data_3D(dset, 'test', image_data_format)
         np.save(os.path.join(dset, 'validation_T1.npy'), X_full_val)
@@ -203,8 +205,8 @@ def train(**kwargs):
                 if batch_counter % (n_batch_per_epoch / 2) == 0:
                     # Get new images from validation
                     idx = random.sample(np.arange(0, X_full_val.shape[0], 18).tolist(), 1)
-                    data_utils.plot_generated_batch(X_full_val[idx:idx+18, :], X_sketch_val[idx:idx+8, :],
-                                                    generator_model, e, dict_val[idx//18], d3=True)
+                    data_utils.plot_generated_batch(X_full_val[idx[0]:idx[0]+18, :], X_sketch_val[idx[0]:idx[0]+18, :],
+                                                    generator_model, e, dict_val[idx[0]//18], d3=True)
 #                     X_full_batch, X_sketch_batch = next(data_utils.gen_batch(X_full_val, X_sketch_val, batch_size))
 #                     data_utils.plot_generated_batch(X_full_batch, X_sketch_batch, generator_model, e, d3=True)
 

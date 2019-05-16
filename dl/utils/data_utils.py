@@ -191,8 +191,8 @@ def load_data(data_dir, data_type, image_data_format, img_width=256, img_height=
 def load_data_3D(data_dir, data_type, image_data_format, img_width=128, img_height=128, img_depth=128, mb=[3, 3, 2]):
 
         # Get all .h5 files containing training images
-    facade_photos_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'A')))[:2]
-    facade_labels_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'B')))[:2]
+    facade_photos_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'A')))
+    facade_labels_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'B')))
 #     facade_labels_h5 = [f for f in os.listdir(os.path.join(data_dir_path, 'facades')) if '.h5' in f]
     dx = 320
     dy = 320
@@ -447,9 +447,9 @@ def save_images_3D(real_images, real_sketches, generated_images, dict_val, num_e
 #     for i in range(8):
 #         final_gen_image[i*24:i*24+128, i*24:i*24+128, i*5:i*5+128, i] = generated_images[i, :]
 #     final_gen_image = stats.tmean(final_gen_image, [-1, 1])
-    final_image = np.zeros((im_shape[0], im_shape[1], im_shape[2], generated_images.shape[0]))-2
-    k = 0
     for n_image, image in enumerate([real_images, real_sketches, generated_images]):
+        final_image = np.zeros((im_shape[0], im_shape[1], im_shape[2], generated_images.shape[0]))-2
+        k = 0
         for z in indexes[2]:
             for j in indexes[1]:
                 for i in indexes[0]:
