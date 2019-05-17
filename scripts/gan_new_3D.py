@@ -1,19 +1,14 @@
 import os
-import sys
 import time
 import numpy as np
 import scripts.models as models
 from keras.utils import generic_utils
-from keras.optimizers import Adam, SGD
+from keras.optimizers import Adam
 import keras.backend as K
-# Utils
-# sys.path.append("../dl/utils")
 import dl.utils.general_utils as general_utils
 import dl.utils.data_utils as data_utils
 from keras.callbacks import TensorBoard
-import matplotlib.pyplot as plot
 import random
-import pickle
 
 
 def l1_loss(y_true, y_pred):
@@ -61,19 +56,15 @@ def train(**kwargs):
             X_sketch_train = np.load(os.path.join(dset, 'training_FLAIR.npy'))
         except:
             X_full_train, X_sketch_train, _ = data_utils.load_data_3D(dset, 'train', image_data_format)
-            np.save(os.path.join(dset, 'training_T1_part7.npy'), X_full_train)
-            np.save(os.path.join(dset, 'training_FLAIR_part7.npy'), X_sketch_train)
+            np.save(os.path.join(dset, 'training_T1.npy'), X_full_train)
+            np.save(os.path.join(dset, 'training_FLAIR.npy'), X_sketch_train)
         try:
             X_full_val = np.load(os.path.join(dset, 'validation_T1.npy'))
             X_sketch_val = np.load(os.path.join(dset, 'validation_FLAIR.npy'))
-            with open(os.path.join(dset, 'validation_dict.pkl'), 'rb') as f:
-                dict_val = pickle.load(f)
         except:
-            X_full_val, X_sketch_val, dict_val = data_utils.load_data_3D(dset, 'test', image_data_format)
+            X_full_val, X_sketch_val, _ = data_utils.load_data_3D(dset, 'test', image_data_format)
             np.save(os.path.join(dset, 'validation_T1.npy'), X_full_val)
             np.save(os.path.join(dset, 'validation_FLAIR.npy'), X_sketch_val)
-            with open(os.path.join(dset, 'validation_dict.pkl'), 'wb') as f:
-                pickle.dump(dict_val, f)
         img_dim = X_full_train.shape[-4:]
     
         # Get the number of non overlapping patch and the size of input image to the discriminator
@@ -138,8 +129,8 @@ def train(**kwargs):
 #         res=generator_model.predict(X_sketch_val)
 
         decay = 1
-        z = 0
-        init = 0
+#         z = 0
+#         init = 0
         for e in range(nb_epoch):
             if use_generator:
                 data = list(zip(data_full, data_sketch))
@@ -166,18 +157,7 @@ def train(**kwargs):
                 print('Generator LR: {}'.format(K.get_value(generator_model.optimizer.lr)))
                 print('DCGAN LR: {}'.format(K.get_value(DCGAN_model.optimizer.lr)))
                 print('Discriminator LR: {}'.format(K.get_value(discriminator_model.optimizer.lr)))
-#             # Create optimizers
-#             opt_dcgan = Adam(lr=lr, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
-#             # opt_discriminator = SGD(lr=1E-3, momentum=0.9, nesterov=True)
-#             opt_discriminator = Adam(lr=, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
-#             
-#             generator_model.compile(loss='mae', optimizer=opt_discriminator)
-#             discriminator_model.trainable = False
-#     
-#             DCGAN_model.compile(loss=loss, loss_weights=loss_weights, optimizer=opt_dcgan)
-#     
-#             discriminator_model.trainable = True
-#             discriminator_model.compile(loss='binary_crossentropy', optimizer=opt_discriminator)
+
             for f, s in data:
                 if use_generator:
                     X_full_train = np.load(os.path.join(dset, f))
@@ -225,14 +205,6 @@ def train(**kwargs):
                                                     ("G tot", gen_loss[0]),
                                                     ("G L1", gen_loss[1]),
                                                     ("G logloss", gen_loss[2])])
-                    # Save images for visualization
-    #                 if batch_counter % (n_batch_per_epoch / 2) == 0:
-    #                     # Get new images from validation
-    #                     idx = random.sample(np.arange(0, X_full_val.shape[0], 18).tolist(), 1)
-    #                     data_utils.plot_generated_batch(X_full_val[idx[0]:idx[0]+18, :], X_sketch_val[idx[0]:idx[0]+18, :],
-    #                                                     generator_model, e, dict_val[idx[0]//18], logging_dir, d3=True)
-    #                     X_full_batch, X_sketch_batch = next(data_utils.gen_batch(X_full_val, X_sketch_val, batch_size))
-    #                     data_utils.plot_generated_batch(X_full_batch, X_sketch_batch, generator_model, e, d3=True)
     
                     if batch_counter >= n_batch_per_epoch:
                         break
@@ -260,12 +232,12 @@ def launch_training(**kwargs):
     train(**kwargs)
 
 
-d_params = {"dset": "/mnt/sdb/data_T1_to_FLAIR_normalized", #"/mnt/sdb/brats_normalized/", 
+d_params = {"dset": "/data/gan_data/", # "/mnt/sdb/data_T1_to_FLAIR_normalized", 
             "generator": 'upsampling',
             "batch_size": 3,
             "n_batch_per_epoch": 100,
             "nb_epoch": 201,
-            "model_name": "brats",
+            "model_name": "3D_lf=0.7_ps=32_bs=3",
             "epoch": 10,
             "nb_classes": 1,
             "do_plot": False,
@@ -276,7 +248,7 @@ d_params = {"dset": "/mnt/sdb/data_T1_to_FLAIR_normalized", #"/mnt/sdb/brats_nor
             "label_flipping": 0.7,
             "patch_size": (32, 32, 32),
             "use_mbd": True,
-            "logging_dir": '/mnt/sdb/logs_gan/',
+            "logging_dir": "/data/logs_gan/", # '/mnt/sdb/logs_gan/'
             "use_generator": True
             }
 
