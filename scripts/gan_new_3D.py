@@ -46,7 +46,7 @@ def train(**kwargs):
     use_generator = kwargs["use_generator"]
     img_dim = kwargs["img_dim"]
     
-    epoch_size = n_batch_per_epoch * batch_size
+    epoch_size = n_batch_per_epoch * batch_size * 7
     lr_init = 2E-4
 
     # Setup environment (logging directory etc)
@@ -61,8 +61,8 @@ def train(**kwargs):
             X_sketch_train = np.load(os.path.join(dset, 'training_FLAIR.npy'))
         except:
             X_full_train, X_sketch_train, _ = data_utils.load_data_3D(dset, 'train', image_data_format)
-            np.save(os.path.join(dset, 'training_T1.npy'), X_full_train)
-            np.save(os.path.join(dset, 'training_FLAIR.npy'), X_sketch_train)
+            np.save(os.path.join(dset, 'training_T1_part7.npy'), X_full_train)
+            np.save(os.path.join(dset, 'training_FLAIR_part7.npy'), X_sketch_train)
         try:
             X_full_val = np.load(os.path.join(dset, 'validation_T1.npy'))
             X_sketch_val = np.load(os.path.join(dset, 'validation_FLAIR.npy'))
@@ -80,6 +80,8 @@ def train(**kwargs):
         nb_patch, img_dim_disc = data_utils.get_nb_patch_3D(img_dim, patch_size, image_data_format)
     else:
         try:
+            data_full = [x for x in os.listdir(dset) if x.endswith('.npy') and 'T1' in x]
+            data_sketch = [x for x in os.listdir(dset) if x.endswith('.npy') and 'FLAIR' in x]
             img_dim = img_dim
             nb_patch, img_dim_disc = data_utils.get_nb_patch_3D(img_dim, patch_size, image_data_format)
         except:
@@ -140,12 +142,14 @@ def train(**kwargs):
         init = 0
         for e in range(nb_epoch):
             if use_generator:
-                X_full_train, X_sketch_train, _ = data_utils.load_data_3D(dset, 'train', image_data_format, bs=batch_size)
-                X_full_val, X_sketch_val, dict_val = data_utils.load_data_3D(dset, 'test', image_data_format, bs=batch_size)
+                data = list(zip(data_full, data_sketch))
+                random.shuffle(data)
+            else:
+                data = [X_full_train, X_sketch_train]
 
             # Initialize progbar and batch counter
             progbar = generic_utils.Progbar(epoch_size)
-            batch_counter = 1
+            
             start = time.time()
             dis_losses = []
             gen_losses = []
@@ -174,57 +178,64 @@ def train(**kwargs):
 #     
 #             discriminator_model.trainable = True
 #             discriminator_model.compile(loss='binary_crossentropy', optimizer=opt_discriminator)
-
-            for X_full_batch, X_sketch_batch in data_utils.gen_batch(X_full_train, X_sketch_train, batch_size):
-
-                # Create a batch to feed the discriminator model
-                X_disc, y_disc = data_utils.get_disc_batch(X_full_batch,
-                                                           X_sketch_batch,
-                                                           generator_model,
-                                                           batch_counter,
-                                                           patch_size,
-                                                           image_data_format,
-                                                           label_smoothing=label_smoothing,
-                                                           label_flipping=label_flipping,
-                                                           d3=True)
-
-                # Update the discriminator
-#                 if z == 1 or init:
-#                     disc_loss = discriminator_model.train_on_batch(X_disc, y_disc)
-#                     z = 0
-#                     init = False
-#                 else:
-#                     z += 1
-                disc_loss = discriminator_model.train_on_batch(X_disc, y_disc)
-                # Create a batch to feed the generator model
-                X_gen, X_gen_target = next(data_utils.gen_batch(X_full_train, X_sketch_train, batch_size))
-                y_gen = np.zeros((X_gen.shape[0], 2), dtype=np.uint8)
-                y_gen[:, 1] = 1
-
-                # Freeze the discriminator
-                discriminator_model.trainable = False
-                gen_loss = DCGAN_model.train_on_batch(X_gen, [X_gen_target, y_gen])
-                # Unfreeze the discriminator
-                discriminator_model.trainable = True
-                
-                gen_losses.append(gen_loss[0])
-                dis_losses.append(disc_loss)
-                batch_counter += 1
-                progbar.add(batch_size, values=[("D logloss", disc_loss),
-                                                ("G tot", gen_loss[0]),
-                                                ("G L1", gen_loss[1]),
-                                                ("G logloss", gen_loss[2])])
-                # Save images for visualization
-                if batch_counter % (n_batch_per_epoch / 2) == 0:
-                    # Get new images from validation
-                    idx = random.sample(np.arange(0, X_full_val.shape[0], 18).tolist(), 1)
-                    data_utils.plot_generated_batch(X_full_val[idx[0]:idx[0]+18, :], X_sketch_val[idx[0]:idx[0]+18, :],
-                                                    generator_model, e, dict_val[idx[0]//18], logging_dir, d3=True)
-#                     X_full_batch, X_sketch_batch = next(data_utils.gen_batch(X_full_val, X_sketch_val, batch_size))
-#                     data_utils.plot_generated_batch(X_full_batch, X_sketch_batch, generator_model, e, d3=True)
-
-                if batch_counter >= n_batch_per_epoch:
-                    break
+            for f, s in data:
+                if use_generator:
+                    X_full_train = np.load(os.path.join(dset, f))
+                    X_sketch_train = np.load(os.path.join(dset, s))
+                else:
+                    X_full_train = f
+                    X_sketch_train = s
+                batch_counter = 1
+                for X_full_batch, X_sketch_batch in data_utils.gen_batch(X_full_train, X_sketch_train, batch_size):
+    
+                    # Create a batch to feed the discriminator model
+                    X_disc, y_disc = data_utils.get_disc_batch(X_full_batch,
+                                                               X_sketch_batch,
+                                                               generator_model,
+                                                               batch_counter,
+                                                               patch_size,
+                                                               image_data_format,
+                                                               label_smoothing=label_smoothing,
+                                                               label_flipping=label_flipping,
+                                                               d3=True)
+    
+                    # Update the discriminator
+    #                 if z == 1 or init:
+    #                     disc_loss = discriminator_model.train_on_batch(X_disc, y_disc)
+    #                     z = 0
+    #                     init = False
+    #                 else:
+    #                     z += 1
+                    disc_loss = discriminator_model.train_on_batch(X_disc, y_disc)
+                    # Create a batch to feed the generator model
+                    X_gen, X_gen_target = next(data_utils.gen_batch(X_full_train, X_sketch_train, batch_size))
+                    y_gen = np.zeros((X_gen.shape[0], 2), dtype=np.uint8)
+                    y_gen[:, 1] = 1
+    
+                    # Freeze the discriminator
+                    discriminator_model.trainable = False
+                    gen_loss = DCGAN_model.train_on_batch(X_gen, [X_gen_target, y_gen])
+                    # Unfreeze the discriminator
+                    discriminator_model.trainable = True
+                    
+                    gen_losses.append(gen_loss[0])
+                    dis_losses.append(disc_loss)
+                    batch_counter += 1
+                    progbar.add(batch_size, values=[("D logloss", disc_loss),
+                                                    ("G tot", gen_loss[0]),
+                                                    ("G L1", gen_loss[1]),
+                                                    ("G logloss", gen_loss[2])])
+                    # Save images for visualization
+    #                 if batch_counter % (n_batch_per_epoch / 2) == 0:
+    #                     # Get new images from validation
+    #                     idx = random.sample(np.arange(0, X_full_val.shape[0], 18).tolist(), 1)
+    #                     data_utils.plot_generated_batch(X_full_val[idx[0]:idx[0]+18, :], X_sketch_val[idx[0]:idx[0]+18, :],
+    #                                                     generator_model, e, dict_val[idx[0]//18], logging_dir, d3=True)
+    #                     X_full_batch, X_sketch_batch = next(data_utils.gen_batch(X_full_val, X_sketch_val, batch_size))
+    #                     data_utils.plot_generated_batch(X_full_batch, X_sketch_batch, generator_model, e, d3=True)
+    
+                    if batch_counter >= n_batch_per_epoch:
+                        break
             general_utils.write_log(tensorboard, 'discriminator_loss', np.mean(dis_losses), e)
             general_utils.write_log(tensorboard, 'generator_loss', np.mean(gen_losses), e)
             print("")
@@ -251,7 +262,7 @@ def launch_training(**kwargs):
 
 d_params = {"dset": "/mnt/sdb/data_T1_to_FLAIR_normalized", #"/mnt/sdb/brats_normalized/", 
             "generator": 'upsampling',
-            "batch_size": 6,
+            "batch_size": 3,
             "n_batch_per_epoch": 100,
             "nb_epoch": 201,
             "model_name": "brats",

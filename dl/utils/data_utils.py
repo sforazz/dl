@@ -202,8 +202,8 @@ def load_data_3D(data_dir, data_type, image_data_format, img_width=128, img_heig
         facade_photos_h5 = [facade_photos_h5[x] for x in idx]
         facade_labels_h5 = [facade_labels_h5[x] for x in idx]
     else:
-        facade_photos_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'A')))
-        facade_labels_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'B')))
+        facade_photos_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'A')))[100:110]
+        facade_labels_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'B')))[100:110]
 #     facade_labels_h5 = [f for f in os.listdir(os.path.join(data_dir_path, 'facades')) if '.h5' in f]
     dx = 320
     dy = 320
@@ -251,57 +251,11 @@ def load_data_3D(data_dir, data_type, image_data_format, img_width=128, img_heig
 
         facades_photo = [facade_photos_orig[i[0]:i[1], j[0]:j[1], z[0]:z[1]] for z in indZ for j in indY for i in indX]
         facades_label = [facade_labels_orig[i[0]:i[1], j[0]:j[1], z[0]:z[1]] for z in indZ for j in indY for i in indX]
-#         for z in indZ:
-#             for j in indY:
-#                 for i in indX:
-#                     im = facade_photos_orig[i[0]:i[1], j[0]:j[1], z[0]:z[1]]
-#                     im = normalize_array_max(im)
-#                     facades_photo.append(im)
-#                     im = facade_labels_orig[i[0]:i[1], j[0]:j[1], z[0]:z[1]]
-#                     im = normalize_array_max(im)
-#                     facades_label.append(im)
-#         for i, bs in enumerate(mb):
-#             for j in range(bs):
-#                 if i == 0:
-#                     im = facade_photos_orig[j*(diffX//mb[0]):j*(diffX//mb[0])+img_width, i*(diffY//mb[1]):i*(diffY//mb[1])+img_height,
-#                                         i*(diffZ//mb[2]):i*(diffZ//mb[2])+img_depth]
-#                 im = facade_photos_orig[i*(diffX//mb[0]):i*(diffX//mb[0])+img_width, i*(diffY//mb[1]):i*(diffY//mb[1])+img_height,
-#                                         i*(diffZ//mb[2]):i*(diffZ//mb[2])+img_depth]
-#             im = normalize_array_max(im)
-#             facades_photo.append(im)
-#             im = facade_labels_orig[i*(diffX//mb):i*(diffX//mb)+img_width, i*(diffY//mb):i*(diffY//mb)+img_height,
-#                                     i*(diffZ//mb):i*(diffZ//mb)+img_depth]
-#             im = normalize_array_max(im)
-#             facades_label.append(im)
+
         facade_photos, max_photos = normalize_array_max(np.asarray(facades_photo))
         facade_labels, max_labels = normalize_array_max(np.asarray(facades_label))
-#         facade_photos = np.zeros((img_width, img_height, img_depth))
-#         facade_labels_orig = nib.load(facade_labels_path).get_data()
-#         facade_labels = np.zeros((img_width, img_height, img_depth))
-#         mx, my, mz = [int(x/2) for x in facade_photos_orig.shape]
-#         if facade_photos_orig.shape[2] >= img_depth:
-#             z0 = mz-int(img_depth/2)
-#             z1 = mz+int(img_depth/2)
-#             zmax = img_depth
-#         else:
-#             z0 = 0
-#             z1 = facade_photos_orig.shape[2]
-#             zmax = z1
-#         facade_photos[:, :, :zmax] = facade_photos_orig[mx-int(img_width/2):mx+int(img_width/2),
-#                                            my-int(img_height/2):my+int(img_height/2), z0:z1]
-# #         facade_photos = cv2.resize(facade_photos, (img_width, img_height), interpolation=cv2.INTER_AREA)
-#         facade_photos = normalize_array_max(facade_photos)
-#         facade_labels[:, :, :zmax] = facade_labels_orig[mx-int(img_width/2):mx+int(img_width/2),
-#                                            my-int(img_height/2):my+int(img_height/2), z0:z1]
-#         facade_labels = normalize_array_max(facade_labels)
-        # Resize and normalize images
-#         num_photos = facade_photos['data'].shape[0]
-#         num_labels = facade_labels['data'].shape[0]
-    
-#         all_facades_photos = np.array(facade_photos['data'], dtype=np.float32)
+
         all_facades_photos = facade_photos.reshape((-1, img_width, img_height, img_depth, 1))
-        
-#         all_facades_labels = np.array(facade_labels['data'], dtype=np.float32)
         all_facades_labels = facade_labels.reshape((-1, img_width, img_height, img_depth, 1))
         results_dict[index]['max_photos'] = max_photos
         results_dict[index]['max_labels'] = max_labels
@@ -318,6 +272,59 @@ def load_data_3D(data_dir, data_type, image_data_format, img_width=128, img_heig
     return final_facade_photos, final_facade_labels, results_dict
 
 
+def load_single_image(data, img_width=128, img_height=128, img_depth=128, mb=[3, 3, 2]):
+
+#     facade_labels_h5 = [f for f in os.listdir(os.path.join(data_dir_path, 'facades')) if '.h5' in f]
+    dx = 320
+    dy = 320
+    dz = 168
+
+    final_facade_photos = None
+    
+    diffX = dx - img_width
+    diffY = dy - img_height
+    diffZ = dz - img_depth
+
+    while True:
+        if diffX % (mb[0]-1) != 0:
+            diffX += 1
+            dx += 1
+        elif diffY % (mb[1]-1) != 0:
+            diffY += 1
+            dy += 1
+        elif diffZ % (mb[2]-1) != 0:
+            diffZ += 1
+            dz += 1
+        else:
+            break
+
+    overlapX = diffX//(mb[0]-1)
+    overlapY = diffY//(mb[1]-1)
+    overlapZ = diffZ//(mb[2]-1)
+    indX = [[x,x+img_width] for x in np.arange(0,dx,overlapX) if x+img_width<=dx]
+    indY = [[x,x+img_height] for x in np.arange(0,dy,overlapY) if x+img_height<=dy]
+    indZ = [[x,x+img_depth] for x in np.arange(0,dz,overlapZ) if x+img_depth<=dz]
+
+
+
+    facade_photos_orig = nib.load(data).get_data()
+    facade_photos_orig = resize(facade_photos_orig, (dx, dy, dz), order=3, mode='edge', cval=0,
+                                anti_aliasing=False)
+
+    facades_photo = [facade_photos_orig[i[0]:i[1], j[0]:j[1], z[0]:z[1]] for z in indZ for j in indY for i in indX]
+
+    facade_photos, _ = normalize_array_max(np.asarray(facades_photo))
+
+    all_facades_photos = facade_photos.reshape((-1, img_width, img_height, img_depth, 1))
+
+    if final_facade_photos is not None:
+                final_facade_photos = np.concatenate([final_facade_photos, all_facades_photos], axis=0)
+    else:
+                final_facade_photos = all_facades_photos
+    
+    return final_facade_photos
+    
+    
 def load_data_prediction(data_dir, img_width=256, img_height=256):
 
         # Get all .h5 files containing training images
@@ -350,10 +357,80 @@ def load_data_prediction(data_dir, img_width=256, img_height=256):
     return final_facade_photos
 
 
-def gen_batch(X1, X2, batch_size):
+def load_data_prediction_3D(data_dir, img_width=128, img_height=128, img_depth=128, mb=[3, 3, 2]):
+
+        # Get all .h5 files containing training images
+    facade_photos_h5 = sorted(os.listdir(os.path.join(data_dir)))
+
+#     facade_labels_h5 = [f for f in os.listdir(os.path.join(data_dir_path, 'facades')) if '.h5' in f]
+    dx = 320
+    dy = 320
+    dz = 168
+
+    final_facade_photos = None
+    
+    diffX = dx - img_width
+    diffY = dy - img_height
+    diffZ = dz - img_depth
+
+    while True:
+        if diffX % (mb[0]-1) != 0:
+            diffX += 1
+            dx += 1
+        elif diffY % (mb[1]-1) != 0:
+            diffY += 1
+            dy += 1
+        elif diffZ % (mb[2]-1) != 0:
+            diffZ += 1
+            dz += 1
+        else:
+            break
+
+    overlapX = diffX//(mb[0]-1)
+    overlapY = diffY//(mb[1]-1)
+    overlapZ = diffZ//(mb[2]-1)
+    indX = [[x,x+img_width] for x in np.arange(0,dx,overlapX) if x+img_width<=dx]
+    indY = [[x,x+img_height] for x in np.arange(0,dy,overlapY) if x+img_height<=dy]
+    indZ = [[x,x+img_depth] for x in np.arange(0,dz,overlapZ) if x+img_depth<=dz]
+
+    results_dict = {}
+    
+    for index in range(len(facade_photos_h5)):
+        results_dict[index] = {}
+        facade_photos_path = data_dir+'/' + facade_photos_h5[index]
+        facade_photos_name = facade_photos_path.split('.')[0]+'_syn.nii.gz'
+        results_dict[index]['name'] = facade_photos_name
+#         facade_labels_path = data_dir_path + '/facades/' + facade_labels_h5[index]
+        facade_photos_orig = nib.load(facade_photos_path).get_data()
+        results_dict[index]['orig_dim'] = facade_photos_orig.shape
+        results_dict[index]['orig_affine'] = nib.load(facade_photos_path).affine
+        facade_photos_orig = resize(facade_photos_orig, (dx, dy, dz), order=3, mode='edge', cval=0,
+                                    anti_aliasing=False)
+
+        facades_photo = [facade_photos_orig[i[0]:i[1], j[0]:j[1], z[0]:z[1]] for z in indZ for j in indY for i in indX]
+        facade_photos, max_photos = normalize_array_max(np.asarray(facades_photo))
+
+        all_facades_photos = facade_photos.reshape((-1, img_width, img_height, img_depth, 1))
+        results_dict[index]['max_photos'] = max_photos
+        results_dict[index]['indexes'] = [indX, indY, indZ]
+        results_dict[index]['im_size'] = [dx, dy, dz]
+
+        if final_facade_photos is not None:
+                    final_facade_photos = np.concatenate([final_facade_photos, all_facades_photos], axis=0)
+        else:
+                    final_facade_photos = all_facades_photos
+    
+    return final_facade_photos, results_dict
+
+    
+def gen_batch(X1, X2, batch_size, use_generator=False):
 
     while True:
         idx = np.random.choice(X1.shape[0], batch_size, replace=False)
+        if use_generator:
+            photos = load_single_image(X1)
+            labels = load_single_image(X1)
+            
         yield X1[idx], X2[idx]
 
 
@@ -394,7 +471,7 @@ def get_disc_batch(X_full_batch, X_sketch_batch, generator_model, batch_counter,
     return X_disc, y_disc
 
 
-def plot_generated_batch(X_full, X_sketch, generator_model, num_epoch, dict_val, dset, d3=False):
+def plot_generated_batch(X_full, X_sketch, generator_model, num_epoch, dict_val=None, dset=None, d3=False):
 
     # Generate images
     X_gen = generator_model.predict(X_full)
@@ -403,41 +480,7 @@ def plot_generated_batch(X_full, X_sketch, generator_model, num_epoch, dict_val,
         save_images_3D(X_full, X_sketch, X_gen, dict_val, num_epoch, dset)
     else:
         save_images(X_full, X_sketch, X_gen, num_epoch)
-#     X_sketch = inverse_normalization(X_sketch)
-#     X_full = inverse_normalization(X_full)
-#     X_gen = inverse_normalization(X_gen) 
-#     
-#     Xs = X_sketch[:8]
-#     Xg = X_gen[:8]
-#     Xr = X_full[:8]
-#     
-#     if image_data_format == "channels_last":
-#         X = np.concatenate((Xs, Xg, Xr), axis=0)
-#         list_rows = []
-#         for i in range(int(X.shape[0] // 4)):
-#             Xr = np.concatenate([X[k] for k in range(4 * i, 4 * (i + 1))], axis=1)
-#             list_rows.append(Xr)
-# 
-#         Xr = np.concatenate(list_rows, axis=0)
-# 
-#     if image_data_format == "channels_first":
-#         X = np.concatenate((Xs, Xg, Xr), axis=0)
-#         list_rows = []
-#         for i in range(int(X.shape[0] // 4)):
-#             Xr = np.concatenate([X[k] for k in range(4 * i, 4 * (i + 1))], axis=2)
-#             list_rows.append(Xr)
-# 
-#         Xr = np.concatenate(list_rows, axis=1)
-#         Xr = Xr.transpose(1,2,0)
-# 
-#     if Xr.shape[-1] == 1:
-#         plt.imshow(Xr[:, :, 0], cmap="gray")
-#     else:
-#         plt.imshow(Xr)
-#     plt.axis("off")
-#     plt.savefig(os.path.join(logging_dir, "figures/current_batch_%s.png" % suffix))
-#     plt.clf()
-#     plt.close()
+
 
 
 def save_images(real_images, real_sketches, generated_images, num_epoch):
@@ -454,10 +497,6 @@ def save_images_3D(real_images, real_sketches, generated_images, dict_val, num_e
     names = ['T1KM', 'FLAIR', 'FLAIR_gen']
     im_shape = dict_val['im_size']
     indexes = dict_val['indexes']
-#     final_gen_image = np.zeros((320, 320, 168, 8))*-2
-#     for i in range(8):
-#         final_gen_image[i*24:i*24+128, i*24:i*24+128, i*5:i*5+128, i] = generated_images[i, :]
-#     final_gen_image = stats.tmean(final_gen_image, [-1, 1])
     for n_image, image in enumerate([real_images, real_sketches, generated_images]):
         final_image = np.zeros((im_shape[0], im_shape[1], im_shape[2], generated_images.shape[0]))-2
         k = 0
@@ -471,10 +510,27 @@ def save_images_3D(real_images, real_sketches, generated_images, dict_val, num_e
         im2save = nib.Nifti1Image(final_image, affine=np.eye(4))
         nib.save(im2save, '{2}/results_im/{0}_epoch_{1}.nii.gz'.format(names[n_image], num_epoch, dset))
 
-#     for j, image in enumerate([real_images, real_sketches, generated_images]):
-#         final_image = np.zeros((320, 320, 168, 8))*-2
-#         for i in range(8):
-#             final_image[i*24:i*24+128, i*24:i*24+128, i*5:i*5+128, i] = image[i, :, :, :, 0]
-#         final_image = stats.tmean(final_image, [-1, 1])
-#         im2save = nib.Nifti1Image(final_image, affine=np.eye(4))
-#         nib.save(im2save, '/mnt/sdb/logs_gan/results_im/{0}_epoch_{1}.nii.gz'.format(names[j], num_epoch))
+
+def save_prediction_3D(generated_images, dict_val):
+    
+    n_images = len(dict_val)
+    batches = generated_images.shape[0]//n_images
+    for n in range(n_images):
+        im_shape = dict_val[n]['im_size']
+        indexes = dict_val[n]['indexes']
+        image = generated_images[n*batches:(n+1)*batches, :]
+        final_image = np.zeros((im_shape[0], im_shape[1], im_shape[2], generated_images.shape[0]))-2
+        k = 0
+        for z in indexes[2]:
+            for j in indexes[1]:
+                for i in indexes[0]:
+                    final_image[i[0]:i[1],j[0]:j[1],z[0]:z[1],k] = image[k,:,:,:,0]
+                    k += 1
+        final_image[final_image==-2] = np.nan
+        final_image = np.nanmean(final_image, axis=3)
+        original_dim = dict_val[n]['orig_dim']
+        final_image = resize(final_image, (original_dim[0], original_dim[1], original_dim[2]), order=3, mode='edge', cval=0,
+                                    anti_aliasing=False)
+        final_image = inverse_normalize_array_max(final_image, dict_val[n]['max_photos'])
+        im2save = nib.Nifti1Image(final_image, affine=dict_val[n]['orig_affine'])
+        nib.save(im2save, dict_val[n]['name'])
