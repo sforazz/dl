@@ -203,8 +203,8 @@ def load_data_3D(data_dir, data_type, image_data_format, img_width=128, img_heig
         facade_photos_h5 = [facade_photos_h5[x] for x in idx]
         facade_labels_h5 = [facade_labels_h5[x] for x in idx]
     else:
-        facade_photos_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'A')))[105:110]
-        facade_labels_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'B')))[105:110]
+        facade_photos_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'A')))[:2]
+        facade_labels_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'B')))[:2]
 #     facade_labels_h5 = [f for f in os.listdir(os.path.join(data_dir_path, 'facades')) if '.h5' in f]
     dx = 320
     dy = 320
@@ -274,13 +274,13 @@ def load_data_3D(data_dir, data_type, image_data_format, img_width=128, img_heig
         results_dict[index]['im_size'] = [dx, dy, dz]
 
         if final_photo_edges is not None and final_label_edges is not None:
-#                     final_facade_photos = np.concatenate([final_facade_photos, all_facades_photos], axis=0)
-#                     final_facade_labels = np.concatenate([final_facade_labels, all_facades_labels], axis=0)
+                    final_facade_photos = np.concatenate([final_facade_photos, all_facades_photos], axis=0)
+                    final_facade_labels = np.concatenate([final_facade_labels, all_facades_labels], axis=0)
                     final_photo_edges = np.concatenate([final_photo_edges, all_photo_edges], axis=0)
                     final_label_edges = np.concatenate([final_label_edges, all_label_edges], axis=0)
         else:
-#                     final_facade_photos = all_facades_photos
-#                     final_facade_labels = all_facades_labels
+                    final_facade_photos = all_facades_photos
+                    final_facade_labels = all_facades_labels
                     final_photo_edges = all_photo_edges
                     final_label_edges = all_label_edges
     
