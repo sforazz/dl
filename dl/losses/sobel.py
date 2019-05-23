@@ -73,4 +73,4 @@ def sobelLoss(yTrue,yPred):
     sum_sobel = K.square(sobels[0])+K.square(sobels[1])+K.square(sobels[2])
     sobelPred = K.sqrt(sum_sobel)
     
-    return K.mean(K.square(sobelTrue - sobelPred))
+    return K.sum(K.abs(sobelPred - sobelTrue), axis=-1)

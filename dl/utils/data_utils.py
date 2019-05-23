@@ -190,7 +190,7 @@ def load_data(data_dir, data_type, image_data_format, img_width=256, img_height=
 
 
 def load_data_3D(data_dir, data_type, image_data_format, img_width=128, img_height=128, img_depth=128, mb=[3, 3, 2], bs=None,
-                 init=None):
+                 init=None, extract_edges=True):
 
         # Get all .h5 files containing training images
     facade_photos_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'A')))
@@ -212,8 +212,6 @@ def load_data_3D(data_dir, data_type, image_data_format, img_width=128, img_heig
 
     final_facade_photos = None
     final_facade_labels = None
-    final_photo_edges = None
-    final_label_edges = None
     
     diffX = dx - img_width
     diffY = dy - img_height
@@ -248,43 +246,55 @@ def load_data_3D(data_dir, data_type, image_data_format, img_width=128, img_heig
         facade_photos_orig = nib.load(facade_photos_path).get_data()
         facade_photos_orig = resize(facade_photos_orig, (dx, dy, dz), order=3, mode='edge', cval=0,
                                     anti_aliasing=False)
-        facade_photos_edge = sobel_3D(facade_photos_orig)
+
         facade_labels_orig = nib.load(facade_labels_path).get_data()
         facade_labels_orig = resize(facade_labels_orig, (dx, dy, dz), order=3, mode='edge', cval=0,
                                     anti_aliasing=False)
-        facade_labels_edge = sobel_3D(facade_labels_orig)
-
+        
         facades_photo = [facade_photos_orig[i[0]:i[1], j[0]:j[1], z[0]:z[1]] for z in indZ for j in indY for i in indX]
-        facades_photo_edge = [facade_photos_edge[i[0]:i[1], j[0]:j[1], z[0]:z[1]] for z in indZ for j in indY for i in indX]
         facades_label = [facade_labels_orig[i[0]:i[1], j[0]:j[1], z[0]:z[1]] for z in indZ for j in indY for i in indX]
-        facades_label_edge = [facade_labels_edge[i[0]:i[1], j[0]:j[1], z[0]:z[1]] for z in indZ for j in indY for i in indX]
+        
 
         facade_photos, max_photos = normalize_array_max(np.asarray(facades_photo))
         facade_labels, max_labels = normalize_array_max(np.asarray(facades_label))
-        photo_edges, _ = normalize_array_max(np.asarray(facades_photo_edge))
-        label_edges, _ = normalize_array_max(np.asarray(facades_label_edge))
+        
 
         all_facades_photos = facade_photos.reshape((-1, img_width, img_height, img_depth, 1))
         all_facades_labels = facade_labels.reshape((-1, img_width, img_height, img_depth, 1))
-        all_photo_edges = photo_edges.reshape((-1, img_width, img_height, img_depth, 1))
-        all_label_edges = label_edges.reshape((-1, img_width, img_height, img_depth, 1))
+
         results_dict[index]['max_photos'] = max_photos
         results_dict[index]['max_labels'] = max_labels
         results_dict[index]['indexes'] = [indX, indY, indZ]
         results_dict[index]['im_size'] = [dx, dy, dz]
 
-        if final_photo_edges is not None and final_label_edges is not None:
+        if final_facade_photos is not None and final_facade_labels is not None:
                     final_facade_photos = np.concatenate([final_facade_photos, all_facades_photos], axis=0)
                     final_facade_labels = np.concatenate([final_facade_labels, all_facades_labels], axis=0)
-                    final_photo_edges = np.concatenate([final_photo_edges, all_photo_edges], axis=0)
-                    final_label_edges = np.concatenate([final_label_edges, all_label_edges], axis=0)
         else:
                     final_facade_photos = all_facades_photos
                     final_facade_labels = all_facades_labels
-                    final_photo_edges = all_photo_edges
-                    final_label_edges = all_label_edges
-    
-    return final_facade_photos, final_facade_labels, final_photo_edges, final_label_edges, results_dict
+
+        if extract_edges:
+            final_photo_edges = None
+            final_label_edges = None
+            facade_photos_edge = sobel_3D(facade_photos_orig)
+            facade_labels_edge = sobel_3D(facade_labels_orig)
+            facades_label_edge = [facade_labels_edge[i[0]:i[1], j[0]:j[1], z[0]:z[1]] for z in indZ for j in indY for i in indX]
+            facades_photo_edge = [facade_photos_edge[i[0]:i[1], j[0]:j[1], z[0]:z[1]] for z in indZ for j in indY for i in indX]
+            photo_edges, _ = normalize_array_max(np.asarray(facades_photo_edge))
+            label_edges, _ = normalize_array_max(np.asarray(facades_label_edge))
+            all_photo_edges = photo_edges.reshape((-1, img_width, img_height, img_depth, 1))
+            all_label_edges = label_edges.reshape((-1, img_width, img_height, img_depth, 1))
+            if final_photo_edges is not None and final_label_edges is not None:
+                final_photo_edges = np.concatenate([final_photo_edges, all_photo_edges], axis=0)
+                final_label_edges = np.concatenate([final_label_edges, all_label_edges], axis=0)
+            else:
+                final_photo_edges = all_photo_edges
+                final_label_edges = all_label_edges
+    if extract_edges:
+        return final_facade_photos, final_facade_labels, final_photo_edges, final_label_edges, results_dict
+    else:
+        return final_facade_photos, final_facade_labels, results_dict
 
 
 def load_single_image(data, img_width=128, img_height=128, img_depth=128, mb=[3, 3, 2]):
@@ -438,26 +448,26 @@ def load_data_prediction_3D(data_dir, img_width=128, img_height=128, img_depth=1
     return final_facade_photos, results_dict
 
     
-def gen_batch(X1, X2, X3, X4, batch_size, use_generator=False):
+def gen_batch(X1, X2, batch_size, X3=None, X4=None):
 
     while True:
         idx = np.random.choice(X1.shape[0], batch_size, replace=False)
-        if use_generator:
-            photos = load_single_image(X1)
-            labels = load_single_image(X1)
-            
-        yield X1[idx], X2[idx], X3[idx], X4[idx]
+        if X3 is not None and X4 is not None:
+            yield X1[idx], X2[idx], X3[idx], X4[idx]
+        else:
+            yield X1[idx], X2[idx]
 
 
-def get_disc_batch(X_full_batch, X_sketch_batch, X_full_edge, generator_model, batch_counter, patch_size,
-                   image_data_format, label_smoothing=False, label_flipping=0, d3=False):
+def get_disc_batch(X_full_batch, X_sketch_batch, generator_model, batch_counter, patch_size,
+                   image_data_format, X_full_edge=None, label_smoothing=False, label_flipping=0, d3=False):
 
     # Create X_disc: alternatively only generated or real images
     if batch_counter % 2 == 0:
         # Produce an output
         X_disc = generator_model.predict(X_sketch_batch)
-        X_gen_edge, _ = normalize_array_max(sobel_3D(X_disc))
-        X_disc = np.concatenate([X_disc, X_gen_edge], axis=-1)
+        if X_full_edge is not None:
+            X_gen_edge, _ = normalize_array_max(sobel_3D(X_disc))
+            X_disc = np.concatenate([X_disc, X_gen_edge], axis=-1)
         y_disc = np.zeros((X_disc.shape[0], 2), dtype=np.uint8)
         y_disc[:, 0] = 1
 
@@ -467,7 +477,8 @@ def get_disc_batch(X_full_batch, X_sketch_batch, X_full_edge, generator_model, b
                 y_disc[:, [0, 1]] = y_disc[:, [1, 0]]
 
     else:
-        X_disc = np.concatenate([X_full_batch, X_full_edge], axis=-1)
+        if X_full_edge is not None:
+            X_disc = np.concatenate([X_full_batch, X_full_edge], axis=-1)
         y_disc = np.zeros((X_disc.shape[0], 2), dtype=np.uint8)
         if label_smoothing:
             y_disc[:, 1] = np.random.uniform(low=0.9, high=1, size=y_disc.shape[0])

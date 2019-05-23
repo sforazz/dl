@@ -185,16 +185,16 @@ def train(**kwargs):
                     X_edge_full = ef
                     X_edge_sketch = es
                 batch_counter = 1
-                for X_full_batch, X_sketch_batch, X_edge_full_bt, X_edge_sketch_bt in data_utils.gen_batch(X_full_train, X_sketch_train, X_edge_full, X_edge_sketch, batch_size):
+                for X_full_batch, X_sketch_batch, X_edge_full_bt, _ in data_utils.gen_batch(X_full_train, X_sketch_train, batch_size, X3=X_edge_full, X4=X_edge_sketch):
     
                     # Create a batch to feed the discriminator model
                     X_disc, y_disc = data_utils.get_disc_batch(X_full_batch,
                                                                X_sketch_batch,
-                                                               X_edge_full_bt,
                                                                generator_model,
                                                                batch_counter,
                                                                patch_size,
                                                                image_data_format,
+                                                               X_full_edge=X_edge_full_bt,
                                                                label_smoothing=label_smoothing,
                                                                label_flipping=label_flipping,
                                                                d3=True)
@@ -208,7 +208,7 @@ def train(**kwargs):
     #                     z += 1
                     disc_loss = discriminator_model.train_on_batch(X_disc, y_disc)
                     # Create a batch to feed the generator model
-                    X_gen, X_gen_target, X_edge, X_edge_target = next(data_utils.gen_batch(X_full_train, X_sketch_train, X_edge_full, X_edge_sketch, batch_size))
+                    X_gen, X_gen_target, _, X_edge_target = next(data_utils.gen_batch(X_full_train, X_sketch_train, batch_size, X3=X_edge_full, X4=X_edge_sketch))
                     y_gen = np.zeros((X_gen.shape[0], 2), dtype=np.uint8)
                     y_gen[:, 1] = 1
     
