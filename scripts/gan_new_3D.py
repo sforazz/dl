@@ -9,9 +9,14 @@ import dl.utils.general_utils as general_utils
 import dl.utils.data_utils as data_utils
 from keras.callbacks import TensorBoard
 import random
+from dl.losses.sobel import sobelLoss
 
 
 def l1_loss(y_true, y_pred):
+    return K.sum(K.abs(y_pred - y_true), axis=-1)
+
+
+def edge_loss(y_true, y_pred):
     return K.sum(K.abs(y_pred - y_true), axis=-1)
 
 
@@ -55,26 +60,30 @@ def train(**kwargs):
             X_full_train = np.load(os.path.join(dset, 'training_T1.npy'))
             X_sketch_train = np.load(os.path.join(dset, 'training_FLAIR.npy'))
         except:
-            X_full_train, X_sketch_train, _ = data_utils.load_data_3D(dset, 'train', image_data_format)
-            np.save(os.path.join(dset, 'training_T1.npy'), X_full_train)
-            np.save(os.path.join(dset, 'training_FLAIR.npy'), X_sketch_train)
+            X_full_train, X_sketch_train, X_edge_full, X_edge_sketch, _ = data_utils.load_data_3D(dset, 'train', image_data_format)
+            np.save(os.path.join(dset, 'training_T1_edge_part7.2.npy'), X_edge_full)
+            np.save(os.path.join(dset, 'training_FLAIR_edge_part7.2.npy'), X_edge_sketch)
         try:
             X_full_val = np.load(os.path.join(dset, 'validation_T1.npy'))
             X_sketch_val = np.load(os.path.join(dset, 'validation_FLAIR.npy'))
         except:
-            X_full_val, X_sketch_val, _ = data_utils.load_data_3D(dset, 'test', image_data_format)
+            X_full_val, X_sketch_val, _, _, _ = data_utils.load_data_3D(dset, 'test', image_data_format)
             np.save(os.path.join(dset, 'validation_T1.npy'), X_full_val)
             np.save(os.path.join(dset, 'validation_FLAIR.npy'), X_sketch_val)
         img_dim = X_full_train.shape[-4:]
+        img_dim_disc = (img_dim[0], img_dim[1], img_dim[2], 2)
     
         # Get the number of non overlapping patch and the size of input image to the discriminator
-        nb_patch, img_dim_disc = data_utils.get_nb_patch_3D(img_dim, patch_size, image_data_format)
+        nb_patch, img_dim_disc = data_utils.get_nb_patch_3D(img_dim_disc, patch_size, image_data_format)
     else:
         try:
-            data_full = [x for x in os.listdir(dset) if x.endswith('.npy') and 'T1' in x]
-            data_sketch = [x for x in os.listdir(dset) if x.endswith('.npy') and 'FLAIR' in x]
+            data_full = [x for x in os.listdir(dset) if x.endswith('.npy') and 'T1' in x and 'edge' not in x]
+            data_sketch = [x for x in os.listdir(dset) if x.endswith('.npy') and 'FLAIR' in x and 'edge' not in x]
+            edge_full = [x for x in os.listdir(dset) if x.endswith('.npy') and 'T1' in x and 'edge' in x]
+            edge_sketch = [x for x in os.listdir(dset) if x.endswith('.npy') and 'FLAIR' in x and 'edge' in x]
             img_dim = img_dim
-            nb_patch, img_dim_disc = data_utils.get_nb_patch_3D(img_dim, patch_size, image_data_format)
+            img_dim_disc = (img_dim[0], img_dim[1], img_dim[2], 2)
+            nb_patch, img_dim_disc = data_utils.get_nb_patch_3D(img_dim_disc, patch_size, image_data_format)
         except:
             raise Exception('If you use data generator you must specify the image dimensions (for example, (128, 128, 128, 1)).')
 
@@ -111,8 +120,11 @@ def train(**kwargs):
                                        patch_size,
                                        image_data_format)
 
-        loss = [l1_loss, 'binary_crossentropy']
-        loss_weights = [3E1, 1]
+#         loss = [l1_loss, 'binary_crossentropy']
+#         loss_weights = [3E1, 1]
+        loss = [l1_loss, 'binary_crossentropy', sobelLoss]
+        lambda_edge = 0
+        loss_weights = [3E2, 1, lambda_edge]
         DCGAN_model.compile(loss=loss, loss_weights=loss_weights, optimizer=opt_dcgan)
 
         discriminator_model.trainable = True
@@ -133,10 +145,10 @@ def train(**kwargs):
 #         init = 0
         for e in range(nb_epoch):
             if use_generator:
-                data = list(zip(data_full, data_sketch))
+                data = list(zip(data_full, data_sketch, edge_full, edge_sketch))
                 random.shuffle(data)
             else:
-                data = [X_full_train, X_sketch_train]
+                data = [[X_full_train, X_sketch_train, X_edge_full, X_edge_sketch]]
 
             # Initialize progbar and batch counter
             progbar = generic_utils.Progbar(epoch_size)
@@ -144,6 +156,9 @@ def train(**kwargs):
             start = time.time()
             dis_losses = []
             gen_losses = []
+            if e > 0 and e < 21:
+                lambda_edge = lambda_edge + 5
+                DCGAN_model.loss_weights[2] = lambda_edge
             if e > 100:
                 lr = lr_init - 0.000002*decay
                 if lr < 0:
@@ -158,19 +173,24 @@ def train(**kwargs):
                 print('DCGAN LR: {}'.format(K.get_value(DCGAN_model.optimizer.lr)))
                 print('Discriminator LR: {}'.format(K.get_value(discriminator_model.optimizer.lr)))
 
-            for f, s in data:
+            for f, s, ef, es in data:
                 if use_generator:
                     X_full_train = np.load(os.path.join(dset, f))
                     X_sketch_train = np.load(os.path.join(dset, s))
+                    X_edge_full = np.load(os.path.join(dset, ef))
+                    X_edge_sketch = np.load(os.path.join(dset, es))
                 else:
                     X_full_train = f
                     X_sketch_train = s
+                    X_edge_full = ef
+                    X_edge_sketch = es
                 batch_counter = 1
-                for X_full_batch, X_sketch_batch in data_utils.gen_batch(X_full_train, X_sketch_train, batch_size):
+                for X_full_batch, X_sketch_batch, X_edge_full_bt, X_edge_sketch_bt in data_utils.gen_batch(X_full_train, X_sketch_train, X_edge_full, X_edge_sketch, batch_size):
     
                     # Create a batch to feed the discriminator model
                     X_disc, y_disc = data_utils.get_disc_batch(X_full_batch,
                                                                X_sketch_batch,
+                                                               X_edge_full_bt,
                                                                generator_model,
                                                                batch_counter,
                                                                patch_size,
@@ -188,13 +208,13 @@ def train(**kwargs):
     #                     z += 1
                     disc_loss = discriminator_model.train_on_batch(X_disc, y_disc)
                     # Create a batch to feed the generator model
-                    X_gen, X_gen_target = next(data_utils.gen_batch(X_full_train, X_sketch_train, batch_size))
+                    X_gen, X_gen_target, X_edge, X_edge_target = next(data_utils.gen_batch(X_full_train, X_sketch_train, X_edge_full, X_edge_sketch, batch_size))
                     y_gen = np.zeros((X_gen.shape[0], 2), dtype=np.uint8)
                     y_gen[:, 1] = 1
     
                     # Freeze the discriminator
                     discriminator_model.trainable = False
-                    gen_loss = DCGAN_model.train_on_batch(X_gen, [X_gen_target, y_gen])
+                    gen_loss = DCGAN_model.train_on_batch(X_gen, [X_gen_target, y_gen, X_edge_target])
                     # Unfreeze the discriminator
                     discriminator_model.trainable = True
                     
@@ -204,7 +224,8 @@ def train(**kwargs):
                     progbar.add(batch_size, values=[("D logloss", disc_loss),
                                                     ("G tot", gen_loss[0]),
                                                     ("G L1", gen_loss[1]),
-                                                    ("G logloss", gen_loss[2])])
+                                                    ("G logloss", gen_loss[2]),
+                                                    ("G Sobelloss", gen_loss[3])])
     
                     if batch_counter >= n_batch_per_epoch:
                         break
@@ -232,7 +253,7 @@ def launch_training(**kwargs):
     train(**kwargs)
 
 
-d_params = {"dset": "/data/gan_data/", # "/mnt/sdb/data_T1_to_FLAIR_normalized", 
+d_params = {"dset": "/mnt/sdb/data_T1_to_FLAIR_normalized/tensors_3D/", #"/data/gan_data/",
             "generator": 'upsampling',
             "batch_size": 3,
             "n_batch_per_epoch": 100,
@@ -243,12 +264,12 @@ d_params = {"dset": "/data/gan_data/", # "/mnt/sdb/data_T1_to_FLAIR_normalized",
             "do_plot": False,
             "image_data_format": "channels_last",
             "bn_mode": 2,
-            "img_dim": (128, 128, 128, 1),
+            "img_dim": (8, 8, 8, 1),
             "use_label_smoothing": True,
             "label_flipping": 0.7,
-            "patch_size": (32, 32, 32),
+            "patch_size": (2, 2, 2),
             "use_mbd": True,
-            "logging_dir": "/data/logs_gan/", # '/mnt/sdb/logs_gan/'
+            "logging_dir": '/mnt/sdb/logs_gan/', #"/data/logs_gan/", # 
             "use_generator": True
             }
 
