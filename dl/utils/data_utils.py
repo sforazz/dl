@@ -479,6 +479,8 @@ def get_disc_batch(X_full_batch, X_sketch_batch, generator_model, batch_counter,
     else:
         if X_full_edge is not None:
             X_disc = np.concatenate([X_full_batch, X_full_edge], axis=-1)
+        else:
+            X_disc = X_full_batch
         y_disc = np.zeros((X_disc.shape[0], 2), dtype=np.uint8)
         if label_smoothing:
             y_disc[:, 1] = np.random.uniform(low=0.9, high=1, size=y_disc.shape[0])
