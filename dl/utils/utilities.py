@@ -51,7 +51,9 @@ def sobel_3D(image, training=False):
     fz = np.array([[[-1, -2, -1], [0, 0, 0], [1, 2, 1]],
                    [[-2, -4, -2], [0, 0, 0], [2, 4, 2]],
                    [[-1, -2, -1], [0, 0, 0], [1, 2, 1]]])
-
+    
+    where_are_NaNs = np.isnan(image)
+    image[where_are_NaNs] = 0
     if len(image.shape) > 3:
         if training:
             image = image[:, :, :, :, 0]
