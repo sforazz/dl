@@ -456,7 +456,7 @@ def get_disc_batch(X_full_batch, X_sketch_batch, X_full_edge, generator_model, b
     if batch_counter % 2 == 0:
         # Produce an output
         X_disc = generator_model.predict(X_sketch_batch)
-        X_gen_edge = normalize_array_max(sobel_3D(X_disc))
+        X_gen_edge, _ = normalize_array_max(sobel_3D(X_disc))
         X_disc = np.concatenate([X_disc, X_gen_edge], axis=-1)
         y_disc = np.zeros((X_disc.shape[0], 2), dtype=np.uint8)
         y_disc[:, 0] = 1
