@@ -179,8 +179,8 @@ def train(**kwargs):
                 if use_generator:
                     X_full_train = np.load(os.path.join(dset, f))
                     X_sketch_train = np.load(os.path.join(dset, s))
-                    X_edge_full = np.load(os.path.join(dset, ef))
-                    X_edge_sketch = np.load(os.path.join(dset, es))
+                    X_edge_full = np.load(os.path.join(dset, 'edge_data', ef))
+                    X_edge_sketch = np.load(os.path.join(dset, 'edge_data', es))
                 else:
                     X_full_train = f
                     X_sketch_train = s
