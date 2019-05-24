@@ -77,10 +77,12 @@ def train(**kwargs):
         nb_patch, img_dim_disc = data_utils.get_nb_patch_3D(img_dim_disc, patch_size, image_data_format)
     else:
         try:
-            data_full = [x for x in os.listdir(dset) if x.endswith('.npy') and 'T1' in x and 'edge' not in x]
-            data_sketch = [x for x in os.listdir(dset) if x.endswith('.npy') and 'FLAIR' in x and 'edge' not in x]
-            edge_full = [x for x in os.listdir(dset) if x.endswith('.npy') and 'T1' in x and 'edge' in x]
-            edge_sketch = [x for x in os.listdir(dset) if x.endswith('.npy') and 'FLAIR' in x and 'edge' in x]
+            data_full = sorted([x for x in os.listdir(dset) if x.endswith('.npy') and 'T1' in x and 'edge' not in x])
+            data_sketch = sorted([x for x in os.listdir(dset) if x.endswith('.npy') and 'FLAIR' in x and 'edge' not in x])
+            edge_full = sorted([x for x in os.listdir(os.path.join(dset, 'edge_data'))
+                                if x.endswith('.npy') and 'T1' in x and 'edge' in x])
+            edge_sketch = sorted([x for x in os.listdir(os.path.join(dset, 'edge_data'))
+                                  if x.endswith('.npy') and 'FLAIR' in x and 'edge' in x])
             img_dim = img_dim
             img_dim_disc = (img_dim[0], img_dim[1], img_dim[2], 2)
             nb_patch, img_dim_disc = data_utils.get_nb_patch_3D(img_dim_disc, patch_size, image_data_format)
