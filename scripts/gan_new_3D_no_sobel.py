@@ -162,7 +162,7 @@ def train(**kwargs):
                     X_full_train = f
                     X_sketch_train = s
                 batch_counter = 1
-                for X_full_batch, X_sketch_batch, _, _ in data_utils.gen_batch(X_full_train, X_sketch_train, batch_size):
+                for X_full_batch, X_sketch_batch in data_utils.gen_batch(X_full_train, X_sketch_train, batch_size):
     
                     # Create a batch to feed the discriminator model
                     X_disc, y_disc = data_utils.get_disc_batch(X_full_batch,
@@ -178,7 +178,7 @@ def train(**kwargs):
                     # Update the discriminator
                     disc_loss = discriminator_model.train_on_batch(X_disc, y_disc)
                     # Create a batch to feed the generator model
-                    X_gen, X_gen_target, _, _ = next(data_utils.gen_batch(X_full_train, X_sketch_train, batch_size))
+                    X_gen, X_gen_target = next(data_utils.gen_batch(X_full_train, X_sketch_train, batch_size))
                     y_gen = np.zeros((X_gen.shape[0], 2), dtype=np.uint8)
                     y_gen[:, 1] = 1
     
