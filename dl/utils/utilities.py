@@ -91,8 +91,7 @@ def sobel_edges(image):
       [dy[1], dx[1]], ..., [dy[d-1], dx[d-1]]] calculated using the Sobel filter.
     """
     # Define vertical and horizontal Sobel filters.
-    static_image_shape = image.get_shape()
-    image_shape = array_ops.shape(image)
+    image = tf.where(tf.is_nan(image), tf.ones_like(image) * 0, image)
     fx = np.array([[[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]],
                    [[-2, 0, 2], [-4, 0, 4], [-2, 0, 2]],
                    [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]])
