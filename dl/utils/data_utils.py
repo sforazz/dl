@@ -14,8 +14,9 @@ from dl.utils.utilities import sobel_3D
 
 def normalize_array_max(array):
     max_value = max(array.flatten())
-    array = array / max_value
-    array = (array - 0.5)*2
+    if max_value > 0:
+        array = array / max_value
+        array = (array - 0.5)*2
     return array, max_value
 
 
