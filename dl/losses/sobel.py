@@ -41,7 +41,7 @@ def expandedSobel(inputTensor):
 #     return K.mean(K.square(sobelTrue - sobelPred))
 
 
-def sobelLoss(yTrue,yPred):
+def sobelLoss(yTrue, yPred):
 
     fx = K.variable([[[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]],
                        [[-2, 0, 2], [-4, 0, 4], [-2, 0, 2]],
@@ -54,7 +54,8 @@ def sobelLoss(yTrue,yPred):
                        [[-1, -2, -1], [0, 0, 0], [1, 2, 1]]])
 #     kernels = [[[-1, -2, -1], [0, 0, 0], [1, 2, 1]],
 #                [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]]
-
+    yTrue = K.tf.where(K.tf.is_nan(yTrue), K.tf.ones_like(yTrue) * 0, yTrue)
+    yPred = K.tf.where(K.tf.is_nan(yPred), K.tf.ones_like(yPred) * 0, yPred)
     sobels = []
     for k in [fx, fy, fz]:
         kernels = K.expand_dims(k, -1)

@@ -13,6 +13,8 @@ from dl.losses.sobel import sobelLoss
 
 
 def l1_loss(y_true, y_pred):
+    y_true = K.tf.where(K.tf.is_nan(y_true), K.tf.ones_like(y_true) * 0, y_true)
+    y_pred = K.tf.where(K.tf.is_nan(y_pred), K.tf.ones_like(y_pred) * 0, y_pred)
     return K.sum(K.abs(y_pred - y_true), axis=-1)
 
 
@@ -211,6 +213,8 @@ def train(**kwargs):
                     disc_loss = discriminator_model.train_on_batch(X_disc, y_disc)
                     # Create a batch to feed the generator model
                     X_gen, X_gen_target, _, X_edge_target = next(data_utils.gen_batch(X_full_train, X_sketch_train, batch_size, X3=X_edge_full, X4=X_edge_sketch))
+                    if np.isnan(X_gen).any() or np.isnan(X_gen_target).any() or np.isnan(X_edge_target).any():
+                        print('There are Nans!!')
                     y_gen = np.zeros((X_gen.shape[0], 2), dtype=np.uint8)
                     y_gen[:, 1] = 1
     
