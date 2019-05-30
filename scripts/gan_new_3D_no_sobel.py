@@ -99,7 +99,7 @@ def train(**kwargs):
         generator_model.compile(loss='mae', optimizer=opt_discriminator)
         discriminator_model.trainable = False
 
-        DCGAN_model = models.DCGAN_3D_no_sobel(generator_model,
+        DCGAN_model = models.DCGAN_3D_no_sobel_2(generator_model,
                                                discriminator_model,
                                                img_dim,
                                                patch_size,

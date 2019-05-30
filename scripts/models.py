@@ -530,6 +530,43 @@ def DCGAN_3D_no_sobel(generator, discriminator_model, img_dim, patch_size, image
     return DCGAN
 
 
+def DCGAN_3D_no_sobel_2(generator, discriminator_model, img_dim, patch_size, image_dim_ordering):
+
+    gen_input = Input(shape=img_dim, name="DCGAN_input")
+
+    generated_image = generator(gen_input)
+
+    if image_dim_ordering == "channels_first":
+        h, w, d = img_dim[1:]
+    else:
+        h, w, d = img_dim[:-1]
+    ph, pw, pd = patch_size
+
+    list_row_idx = [(i * ph, (i + 1) * ph) for i in range(h // ph)]
+    list_col_idx = [(i * pw, (i + 1) * pw) for i in range(w // pw)]
+    list_sli_idx = [(i * pd, (i + 1) * pd) for i in range(d // pd)]
+
+    list_gen_patch = []
+    for row_idx in list_row_idx:
+        for col_idx in list_col_idx:
+            for sli_idx in list_sli_idx:
+                if image_dim_ordering == "channels_last":
+                    x_patch = Lambda(lambda inputs: K.squeeze(K.stack([inputs[0][:, row_idx[0]:row_idx[1], col_idx[0]:col_idx[1], sli_idx[0]:sli_idx[1], :],
+                                                                       inputs[1][:, row_idx[0]:row_idx[1], col_idx[0]:col_idx[1], sli_idx[0]:sli_idx[1], :]],
+                                                                       axis=-1), axis=-2))([gen_input, generated_image])
+                else:
+                    x_patch = Lambda(lambda z: z[:, :, row_idx[0]:row_idx[1], col_idx[0]:col_idx[1], sli_idx[0]:sli_idx[1]])(generated_image)
+                list_gen_patch.append(x_patch)
+
+    DCGAN_output = discriminator_model(list_gen_patch)
+
+    DCGAN = Model(inputs=[gen_input],
+                  outputs=[generated_image, DCGAN_output],
+                  name="DCGAN")
+
+    return DCGAN
+
+
 def load(model_name, img_dim, nb_patch, bn_mode, use_mbd, batch_size, do_plot):
 
     if model_name == "generator_unet_upsampling":
