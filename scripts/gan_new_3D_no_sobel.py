@@ -69,7 +69,7 @@ def train(**kwargs):
             data_sketch = [x for x in os.listdir(dset) if x.endswith('.npy') and 'FLAIR' in x and 'edge' not in x]
             img_dim = img_dim
             img_dim_disc = (img_dim[0], img_dim[1], img_dim[2], 2)
-            nb_patch, img_dim_disc = data_utils.get_nb_patch_3D(img_dim, patch_size, image_data_format)
+            nb_patch, img_dim_disc = data_utils.get_nb_patch_3D(img_dim_disc, patch_size, image_data_format)
         except:
             raise Exception('If you use data generator you must specify the image dimensions (for example, (128, 128, 128, 1)).')
 
