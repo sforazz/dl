@@ -68,6 +68,7 @@ def train(**kwargs):
             data_full = [x for x in os.listdir(dset) if x.endswith('.npy') and 'T1' in x and 'edge' not in x]
             data_sketch = [x for x in os.listdir(dset) if x.endswith('.npy') and 'FLAIR' in x and 'edge' not in x]
             img_dim = img_dim
+            img_dim_disc = (img_dim[0], img_dim[1], img_dim[2], 2)
             nb_patch, img_dim_disc = data_utils.get_nb_patch_3D(img_dim, patch_size, image_data_format)
         except:
             raise Exception('If you use data generator you must specify the image dimensions (for example, (128, 128, 128, 1)).')
@@ -222,12 +223,12 @@ def launch_training(**kwargs):
     train(**kwargs)
 
 
-d_params = {"dset": "/data/gan_data/",#"/mnt/sdb/data_T1_to_FLAIR_normalized/", #
+d_params = {"dset": "/data/gan_data_bc/",#"/mnt/sdb/data_T1_to_FLAIR_normalized/", #
             "generator": 'upsampling',
             "batch_size": 2,
             "n_batch_per_epoch": 100,
             "nb_epoch": 201,
-            "model_name": "3D_lf=0_ps=32_bs=2_no_sobel_right_ds",
+            "model_name": "3D_lf=0_ps=32_bs=2_no_sobel_2channels_ds",
             "epoch": 10,
             "nb_classes": 1,
             "do_plot": False,
