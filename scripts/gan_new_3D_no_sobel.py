@@ -41,7 +41,7 @@ def train(**kwargs):
     use_generator = kwargs["use_generator"]
     img_dim = kwargs["img_dim"]
     
-    epoch_size = n_batch_per_epoch * batch_size * 7
+    epoch_size = n_batch_per_epoch * batch_size * 5
     lr_init = 2E-4
 
     # Setup environment (logging directory etc)

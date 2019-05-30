@@ -18,10 +18,6 @@ def l1_loss(y_true, y_pred):
     return K.sum(K.abs(y_pred - y_true), axis=-1)
 
 
-def edge_loss(y_true, y_pred):
-    return K.sum(K.abs(y_pred - y_true), axis=-1)
-
-
 def train(**kwargs):
     """
     Train model
@@ -63,8 +59,10 @@ def train(**kwargs):
             X_sketch_train = np.load(os.path.join(dset, 'training_FLAIR.npy'))
         except:
             X_full_train, X_sketch_train, X_edge_full, X_edge_sketch, _ = data_utils.load_data_3D(dset, 'train', image_data_format)
-            np.save(os.path.join(dset, 'training_T1_edge_part7.2.npy'), X_edge_full)
-            np.save(os.path.join(dset, 'training_FLAIR_edge_part7.2.npy'), X_edge_sketch)
+            np.save(os.path.join(dset, 'training_T1_edge_bc_part5.npy'), X_edge_full)
+            np.save(os.path.join(dset, 'training_FLAIR_edge_bc_part5.npy'), X_edge_sketch)
+            np.save(os.path.join(dset, 'training_T1_bc_part5.npy'), X_full_train)
+            np.save(os.path.join(dset, 'training_FLAIR_bc_part5.npy'), X_sketch_train)
         try:
             X_full_val = np.load(os.path.join(dset, 'validation_T1.npy'))
             X_sketch_val = np.load(os.path.join(dset, 'validation_FLAIR.npy'))
@@ -73,7 +71,7 @@ def train(**kwargs):
             np.save(os.path.join(dset, 'validation_T1.npy'), X_full_val)
             np.save(os.path.join(dset, 'validation_FLAIR.npy'), X_sketch_val)
         img_dim = X_full_train.shape[-4:]
-        img_dim_disc = (img_dim[0], img_dim[1], img_dim[2], 2)
+        img_dim_disc = (img_dim[0], img_dim[1], img_dim[2], 3)
     
         # Get the number of non overlapping patch and the size of input image to the discriminator
         nb_patch, img_dim_disc = data_utils.get_nb_patch_3D(img_dim_disc, patch_size, image_data_format)
@@ -86,7 +84,7 @@ def train(**kwargs):
             edge_sketch = sorted([x for x in os.listdir(os.path.join(dset, 'edge_data'))
                                   if x.endswith('.npy') and 'FLAIR' in x and 'edge' in x])
             img_dim = img_dim
-            img_dim_disc = (img_dim[0], img_dim[1], img_dim[2], 2)
+            img_dim_disc = (img_dim[0], img_dim[1], img_dim[2], 3)
             nb_patch, img_dim_disc = data_utils.get_nb_patch_3D(img_dim_disc, patch_size, image_data_format)
         except:
             raise Exception('If you use data generator you must specify the image dimensions (for example, (128, 128, 128, 1)).')
@@ -126,7 +124,7 @@ def train(**kwargs):
 
 #         loss = [l1_loss, 'binary_crossentropy']
 #         loss_weights = [3E1, 1]
-        loss = [l1_loss, 'binary_crossentropy', sobelLoss]
+        loss = [l1_loss, 'binary_crossentropy', l1_loss]
         lambda_edge = 0
         loss_weights = [3E2, 1, lambda_edge]
         DCGAN_model.compile(loss=loss, loss_weights=loss_weights, optimizer=opt_dcgan)
@@ -259,12 +257,12 @@ def launch_training(**kwargs):
     train(**kwargs)
 
 
-d_params = {"dset": "/data/gan_data/",#"/mnt/sdb/data_T1_to_FLAIR_normalized/", #
+d_params = {"dset": "/mnt/sdb/data_T1_to_FLAIR_normalized/", #"/data/gan_data/",#
             "generator": 'upsampling',
-            "batch_size": 3,
+            "batch_size": 2,
             "n_batch_per_epoch": 100,
             "nb_epoch": 201,
-            "model_name": "3D_lf=0.4_ps=32_bs=3_sobel",
+            "model_name": "3D_lf=0.6_ps=32_bs=2_sobel",
             "epoch": 10,
             "nb_classes": 1,
             "do_plot": False,
@@ -272,11 +270,11 @@ d_params = {"dset": "/data/gan_data/",#"/mnt/sdb/data_T1_to_FLAIR_normalized/", 
             "bn_mode": 2,
             "img_dim": (128, 128, 128, 1),
             "use_label_smoothing": True,
-            "label_flipping": 0.4,
+            "label_flipping": 0.6,
             "patch_size": (32, 32, 32),
             "use_mbd": True,
-            "logging_dir": "/data/logs_gan/", #'/mnt/sdb/logs_gan/',  
-            "use_generator": True
+            "logging_dir": '/mnt/sdb/logs_gan/', # "/data/logs_gan/", #
+            "use_generator": False
             }
 
 launch_training(**d_params)
