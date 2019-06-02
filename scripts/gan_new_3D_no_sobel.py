@@ -88,6 +88,7 @@ def train(**kwargs):
                                       batch_size,
                                       do_plot)
 #         generator_model = build_unet_generator()
+
         # Load discriminator model
         discriminator_model = models.load("DCGAN_discriminator_3D",
                                           img_dim_disc,
@@ -96,8 +97,9 @@ def train(**kwargs):
                                           use_mbd,
                                           batch_size,
                                           do_plot)
-
+        
         generator_model.compile(loss='mae', optimizer=opt_discriminator)
+        generator_model.load_weights('/data/logs_gan/models/3D_lf=0_ps=32_bs=2_no_sobel_2channels_ds/gen_weights_epoch200.h5')
         discriminator_model.trainable = False
 
         DCGAN_model = models.DCGAN_3D_no_sobel_2(generator_model,
@@ -111,9 +113,10 @@ def train(**kwargs):
         loss = [l1_loss, 'binary_crossentropy']
         loss_weights = [3E2, 1]
         DCGAN_model.compile(loss=loss, loss_weights=loss_weights, optimizer=opt_dcgan)
-
+        DCGAN_model.load_weights('/data/logs_gan/models/3D_lf=0_ps=32_bs=2_no_sobel_2channels_ds/DCGAN_weights_epoch200.h5')
         discriminator_model.trainable = True
         discriminator_model.compile(loss='binary_crossentropy', optimizer=opt_discriminator)
+        discriminator_model.load_weights('/data/logs_gan/models/3D_lf=0_ps=32_bs=2_no_sobel_2channels_ds/disc_weights_epoch200.h5')
 
         gen_loss = 100
         disc_loss = 100
