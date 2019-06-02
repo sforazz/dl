@@ -42,7 +42,7 @@ def train(**kwargs):
     img_dim = kwargs["img_dim"]
     
     epoch_size = n_batch_per_epoch * batch_size * 5
-    lr_init = 2E-4
+    lr_init = 1E-5
 
     # Setup environment (logging directory etc)
     general_utils.setup_logging(model_name, logging_dir=logging_dir)
@@ -144,19 +144,19 @@ def train(**kwargs):
             start = time.time()
             dis_losses = []
             gen_losses = []
-            if e > 100:
-                lr = lr_init - 0.000002*decay
-                if lr < 0:
-                    lr = 2.710505431213761e-20
-                else:
-                    decay += 1
-                K.set_value(generator_model.optimizer.lr, lr)
-                K.set_value(DCGAN_model.optimizer.lr, lr)
-                K.set_value(discriminator_model.optimizer.lr, lr)
-            if e == 0 or e > 100:
-                print('Generator LR: {}'.format(K.get_value(generator_model.optimizer.lr)))
-                print('DCGAN LR: {}'.format(K.get_value(DCGAN_model.optimizer.lr)))
-                print('Discriminator LR: {}'.format(K.get_value(discriminator_model.optimizer.lr)))
+#             if e > 100:
+#                 lr = lr_init - 0.000002*decay
+#                 if lr < 0:
+#                     lr = 2.710505431213761e-20
+#                 else:
+#                     decay += 1
+#                 K.set_value(generator_model.optimizer.lr, lr)
+#                 K.set_value(DCGAN_model.optimizer.lr, lr)
+#                 K.set_value(discriminator_model.optimizer.lr, lr)
+#             if e == 0 or e > 100:
+#                 print('Generator LR: {}'.format(K.get_value(generator_model.optimizer.lr)))
+#                 print('DCGAN LR: {}'.format(K.get_value(DCGAN_model.optimizer.lr)))
+#                 print('Discriminator LR: {}'.format(K.get_value(discriminator_model.optimizer.lr)))
 
             for f, s in data:
                 if use_generator:
@@ -231,7 +231,7 @@ d_params = {"dset": "/data/gan_data_bc/",#"/mnt/sdb/data_T1_to_FLAIR_normalized/
             "batch_size": 2,
             "n_batch_per_epoch": 100,
             "nb_epoch": 201,
-            "model_name": "3D_lf=0_ps=32_bs=2_no_sobel_2channels_ds",
+            "model_name": "3D_lf=0_ps=32_bs=2_no_sobel_2channels_ds_part2",
             "epoch": 10,
             "nb_classes": 1,
             "do_plot": False,
