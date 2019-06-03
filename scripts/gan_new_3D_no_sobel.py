@@ -99,7 +99,7 @@ def train(**kwargs):
                                           do_plot)
         
         generator_model.compile(loss='mae', optimizer=opt_discriminator)
-        generator_model.load_weights('/data/logs_gan/models/3D_lf=0_ps=32_bs=2_no_sobel_2channels_ds/gen_weights_epoch200.h5')
+#         generator_model.load_weights('/data/logs_gan/models/3D_lf=0_ps=32_bs=2_no_sobel_2channels_ds/gen_weights_epoch200.h5')
         discriminator_model.trainable = False
 
         DCGAN_model = models.DCGAN_3D_no_sobel_2(generator_model,
@@ -116,7 +116,7 @@ def train(**kwargs):
 #         DCGAN_model.load_weights('/data/logs_gan/models/3D_lf=0_ps=32_bs=2_no_sobel_2channels_ds/DCGAN_weights_epoch200.h5')
         discriminator_model.trainable = True
         discriminator_model.compile(loss='binary_crossentropy', optimizer=opt_discriminator)
-        discriminator_model.load_weights('/data/logs_gan/models/3D_lf=0_ps=32_bs=2_no_sobel_2channels_ds/disc_weights_epoch200.h5')
+#         discriminator_model.load_weights('/data/logs_gan/models/3D_lf=0_ps=32_bs=2_no_sobel_2channels_ds/disc_weights_epoch200.h5')
 
         gen_loss = 100
         disc_loss = 100
@@ -144,19 +144,19 @@ def train(**kwargs):
             start = time.time()
             dis_losses = []
             gen_losses = []
-#             if e > 200:
-#                 lr = lr_init - 0.000001*decay
-#                 if lr < 0:
-#                     lr = 2.710505431213761e-20
-#                 else:
-#                     decay += 1
-#                 K.set_value(generator_model.optimizer.lr, lr)
-#                 K.set_value(DCGAN_model.optimizer.lr, lr)
-#                 K.set_value(discriminator_model.optimizer.lr, lr)
-#             if e == 0 or e > 100:
-#                 print('Generator LR: {}'.format(K.get_value(generator_model.optimizer.lr)))
-#                 print('DCGAN LR: {}'.format(K.get_value(DCGAN_model.optimizer.lr)))
-#                 print('Discriminator LR: {}'.format(K.get_value(discriminator_model.optimizer.lr)))
+            if e > 200:
+                lr = lr_init - 0.000001*decay
+                if lr < 0:
+                    lr = 2.710505431213761e-20
+                else:
+                    decay += 1
+                K.set_value(generator_model.optimizer.lr, lr)
+                K.set_value(DCGAN_model.optimizer.lr, lr)
+                K.set_value(discriminator_model.optimizer.lr, lr)
+            if e == 0 or e > 200:
+                print('Generator LR: {}'.format(K.get_value(generator_model.optimizer.lr)))
+                print('DCGAN LR: {}'.format(K.get_value(DCGAN_model.optimizer.lr)))
+                print('Discriminator LR: {}'.format(K.get_value(discriminator_model.optimizer.lr)))
 
             for f, s in data:
                 if use_generator:
@@ -177,7 +177,7 @@ def train(**kwargs):
                                                                image_data_format,
                                                                label_smoothing=label_smoothing,
                                                                label_flipping=label_flipping,
-                                                               d3=True)
+                                                               mode='3D')
     
                     # Update the discriminator
                     disc_loss = discriminator_model.train_on_batch(X_disc, y_disc)
@@ -226,12 +226,12 @@ def launch_training(**kwargs):
     train(**kwargs)
 
 
-d_params = {"dset": "/data/gan_data_bc/",#"/mnt/sdb/data_T1_to_FLAIR_normalized/", #
+d_params = {"dset": "/data/gan_data/",#"/mnt/sdb/data_T1_to_FLAIR_normalized/", #
             "generator": 'upsampling',
             "batch_size": 2,
             "n_batch_per_epoch": 100,
-            "nb_epoch": 201,
-            "model_name": "3D_lf=0_ps=32_bs=2_no_sobel_2channels_ds_part2",
+            "nb_epoch": 401,
+            "model_name": "3D_lf=0_ps=32_bs=2_no_sobel_2channels_e=400",
             "epoch": 10,
             "nb_classes": 1,
             "do_plot": False,

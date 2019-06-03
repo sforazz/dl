@@ -8,7 +8,7 @@ from keras.layers.pooling import MaxPooling2D
 import keras.backend as K
 import numpy as np
 from keras.layers import Convolution2D, concatenate
-from dl.utils.utilities import sobel_3D, sobel_edges
+from dl.utils.utilities import sobel_3D, sobel_edges, sobel_edges_2D
 
 
 def minb_disc(x):
@@ -299,6 +299,44 @@ def DCGAN(generator, discriminator_model, img_dim, patch_size, image_dim_orderin
 
     DCGAN = Model(inputs=[gen_input],
                   outputs=[generated_image, DCGAN_output],
+                  name="DCGAN")
+
+    return DCGAN
+
+
+def DCGAN_2D_sobel(generator, discriminator_model, img_dim, patch_size, image_dim_ordering):
+    
+    gen_input = Input(shape=img_dim, name="DCGAN_input")
+
+    generated_image = generator(gen_input)
+
+    generated_edge = Lambda(lambda inputs: sobel_edges_2D(inputs))(generated_image)
+
+    if image_dim_ordering == "channels_first":
+        h, w = img_dim[1:]
+    else:
+        h, w = img_dim[:-1]
+    ph, pw = patch_size
+
+    list_row_idx = [(i * ph, (i + 1) * ph) for i in range(h // ph)]
+    list_col_idx = [(i * pw, (i + 1) * pw) for i in range(w // pw)]
+
+    list_gen_patch = []
+    for row_idx in list_row_idx:
+        for col_idx in list_col_idx:
+            if image_dim_ordering == "channels_last":
+                x_patch = Lambda(lambda inputs: K.squeeze(K.stack([inputs[0][:, row_idx[0]:row_idx[1], col_idx[0]:col_idx[1], :],
+                                                                   inputs[1][:, row_idx[0]:row_idx[1], col_idx[0]:col_idx[1], :],
+                                                                   inputs[2][:, row_idx[0]:row_idx[1], col_idx[0]:col_idx[1], :]],
+                                                                   axis=-1), axis=-2))([gen_input, generated_image, generated_edge])
+            else:
+                x_patch = Lambda(lambda z: z[:, :, row_idx[0]:row_idx[1], col_idx[0]:col_idx[1]])(generated_image)
+            list_gen_patch.append(x_patch)
+
+    DCGAN_output = discriminator_model(list_gen_patch)
+
+    DCGAN = Model(inputs=[gen_input],
+                  outputs=[generated_image, DCGAN_output, generated_edge],
                   name="DCGAN")
 
     return DCGAN

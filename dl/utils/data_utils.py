@@ -3,7 +3,7 @@ import os
 import numpy as np
 import cv2
 from skimage.transform import resize
-from dl.utils.utilities import sobel_3D
+from dl.utils.utilities import sobel_3D, sobel_2D
 
 
 def normalize_array_max(array):
@@ -105,7 +105,7 @@ def extract_patches_3D(X, image_data_format, patch_size):
     return list_X
 
 
-def load_data(data_dir, data_type, image_data_format, img_width=256, img_height=256):
+def load_data(data_dir, data_type, image_data_format, img_width=256, img_height=256, extract_edges=False):
 
         # Get all .h5 files containing training images
     facade_photos_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'A')))
@@ -114,17 +114,19 @@ def load_data(data_dir, data_type, image_data_format, img_width=256, img_height=
 
     final_facade_photos = None
     final_facade_labels = None
+    final_photo_edges = None
+    final_label_edges = None
     
     for index in range(len(facade_photos_h5)):
         facade_photos_path = os.path.join(data_dir, data_type+'A/') + facade_photos_h5[index]
         facade_labels_path = os.path.join(data_dir, data_type+'B/') + facade_labels_h5[index]
 #         facade_labels_path = data_dir_path + '/facades/' + facade_labels_h5[index]
-        facade_photos = nib.load(facade_photos_path).get_data()
-        facade_photos = cv2.resize(facade_photos, (img_width, img_height), interpolation=cv2.INTER_AREA)
-        facade_photos, _ = normalize_array_max(facade_photos)
-        facade_labels = nib.load(facade_labels_path).get_data()
-        facade_labels = cv2.resize(facade_labels, (img_width, img_height), interpolation=cv2.INTER_AREA)
-        facade_labels, _ = normalize_array_max(facade_labels)
+        facade_photos_orig = nib.load(facade_photos_path).get_data()
+        facade_photos_orig = cv2.resize(facade_photos_orig, (img_width, img_height), interpolation=cv2.INTER_AREA)
+        facade_photos, _ = normalize_array_max(facade_photos_orig)
+        facade_labels_orig = nib.load(facade_labels_path).get_data()
+        facade_labels_orig = cv2.resize(facade_labels_orig, (img_width, img_height), interpolation=cv2.INTER_AREA)
+        facade_labels, _ = normalize_array_max(facade_labels_orig)
         # Resize and normalize images
 #         num_photos = facade_photos['data'].shape[0]
 #         num_labels = facade_labels['data'].shape[0]
@@ -141,8 +143,24 @@ def load_data(data_dir, data_type, image_data_format, img_width=256, img_height=
         else:
                     final_facade_photos = all_facades_photos
                     final_facade_labels = all_facades_labels
+        if extract_edges:
+            facade_photos_edge = sobel_2D(facade_photos_orig)
+            facade_labels_edge = sobel_2D(facade_labels_orig)
+            photo_edges, _ = normalize_array_max(facade_photos_edge)
+            label_edges, _ = normalize_array_max(facade_labels_edge)
+            all_photo_edges = photo_edges.reshape((-1, img_width, img_height, 1))
+            all_label_edges = label_edges.reshape((-1, img_width, img_height, 1))
+            if final_photo_edges is not None and final_label_edges is not None:
+                final_photo_edges = np.concatenate([final_photo_edges, all_photo_edges], axis=0)
+                final_label_edges = np.concatenate([final_label_edges, all_label_edges], axis=0)
+            else:
+                final_photo_edges = all_photo_edges
+                final_label_edges = all_label_edges
     
-    return final_facade_photos, final_facade_labels
+    if extract_edges:
+        return final_facade_photos, final_facade_labels, final_photo_edges, final_label_edges
+    else:
+        return final_facade_photos, final_facade_labels
 
 
 def load_data_3D(data_dir, data_type, image_data_format, bias_corr=True, img_width=128, img_height=128, img_depth=128, mb=[3, 3, 2], bs=None,
@@ -170,6 +188,8 @@ def load_data_3D(data_dir, data_type, image_data_format, bias_corr=True, img_wid
 
     final_facade_photos = None
     final_facade_labels = None
+    final_photo_edges = None
+    final_label_edges = None
     
     diffX = dx - img_width
     diffY = dy - img_height
@@ -233,8 +253,6 @@ def load_data_3D(data_dir, data_type, image_data_format, bias_corr=True, img_wid
                     final_facade_labels = all_facades_labels
 
         if extract_edges:
-            final_photo_edges = None
-            final_label_edges = None
             facade_photos_edge = sobel_3D(facade_photos_orig)
             facade_labels_edge = sobel_3D(facade_labels_orig)
             facades_label_edge = [facade_labels_edge[i[0]:i[1], j[0]:j[1], z[0]:z[1]] for z in indZ for j in indY for i in indX]
@@ -370,11 +388,12 @@ def get_disc_batch(X_full_batch, X_sketch_batch, generator_model, batch_counter,
     if batch_counter % 2 == 0:
         # Produce an output
         X_disc = generator_model.predict(X_full_batch)
-        if X_full_edge is not None:
+        if X_full_edge is not None and mode=='3D':
             X_gen_edge, _ = normalize_array_max(sobel_3D(X_disc))
             X_disc = np.concatenate([X_full_batch, X_disc, X_gen_edge], axis=-1)
-        elif mode == '2D':
-            X_disc = X_disc
+        elif X_full_edge is not None and mode == '2D':
+            X_gen_edge, _ = normalize_array_max(sobel_2D(X_disc))
+            X_disc = np.concatenate([X_full_batch, X_disc, X_gen_edge], axis=-1)
         else:
             X_disc = np.concatenate([X_full_batch, X_disc], axis=-1)
         y_disc = np.zeros((X_disc.shape[0], 2), dtype=np.float16)
@@ -392,8 +411,6 @@ def get_disc_batch(X_full_batch, X_sketch_batch, generator_model, batch_counter,
     else:
         if X_full_edge is not None:
             X_disc = np.concatenate([X_full_batch, X_sketch_batch, X_full_edge], axis=-1)
-        elif mode=='2D':
-            X_disc = X_full_batch
         else:
             X_disc = np.concatenate([X_full_batch, X_sketch_batch], axis=-1)
         y_disc = np.zeros((X_disc.shape[0], 2), dtype=np.float16)
@@ -412,7 +429,7 @@ def get_disc_batch(X_full_batch, X_sketch_batch, generator_model, batch_counter,
 #     X_disc_edge = np.expand_dims(X_disc_edge, axis=-1)
 #     X_disc = np.concatenate([X_disc, X_disc_edge], axis=-1)
     # Now extract patches form X_disc
-    if d3:
+    if mode == '3D':
         X_disc = extract_patches_3D(X_disc, image_data_format, patch_size)
     else:
         X_disc = extract_patches(X_disc, image_data_format, patch_size)
