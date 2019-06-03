@@ -68,6 +68,8 @@ def train(**kwargs):
             data_full = [x for x in os.listdir(dset) if x.endswith('.npy') and 'T1' in x and 'edge' not in x]
             data_sketch = [x for x in os.listdir(dset) if x.endswith('.npy') and 'FLAIR' in x and 'edge' not in x]
             img_dim = img_dim
+            print('Found {} parts of data'.format(len(data_full)))
+            epoch_size = n_batch_per_epoch * batch_size * len(data_full)
             img_dim_disc = (img_dim[0], img_dim[1], img_dim[2], 2)
             nb_patch, img_dim_disc = data_utils.get_nb_patch_3D(img_dim_disc, patch_size, image_data_format)
         except:
