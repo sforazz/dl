@@ -113,7 +113,7 @@ def train(**kwargs):
         loss = [l1_loss, 'binary_crossentropy']
         loss_weights = [3E2, 1]
         DCGAN_model.compile(loss=loss, loss_weights=loss_weights, optimizer=opt_dcgan)
-        DCGAN_model.load_weights('/data/logs_gan/models/3D_lf=0_ps=32_bs=2_no_sobel_2channels_ds/DCGAN_weights_epoch200.h5')
+#         DCGAN_model.load_weights('/data/logs_gan/models/3D_lf=0_ps=32_bs=2_no_sobel_2channels_ds/DCGAN_weights_epoch200.h5')
         discriminator_model.trainable = True
         discriminator_model.compile(loss='binary_crossentropy', optimizer=opt_discriminator)
         discriminator_model.load_weights('/data/logs_gan/models/3D_lf=0_ps=32_bs=2_no_sobel_2channels_ds/disc_weights_epoch200.h5')
@@ -144,8 +144,8 @@ def train(**kwargs):
             start = time.time()
             dis_losses = []
             gen_losses = []
-#             if e > 100:
-#                 lr = lr_init - 0.000002*decay
+#             if e > 200:
+#                 lr = lr_init - 0.000001*decay
 #                 if lr < 0:
 #                     lr = 2.710505431213761e-20
 #                 else:

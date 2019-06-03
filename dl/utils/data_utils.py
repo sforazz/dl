@@ -364,7 +364,7 @@ def gen_batch(X1, X2, batch_size, X3=None, X4=None):
 
 
 def get_disc_batch(X_full_batch, X_sketch_batch, generator_model, batch_counter, patch_size,
-                   image_data_format, X_full_edge=None, label_smoothing=False, label_flipping=0, d3=False):
+                   image_data_format, mode='3D', X_full_edge=None, label_smoothing=False, label_flipping=0, d3=False):
 
     # Create X_disc: alternatively only generated or real images
     if batch_counter % 2 == 0:
@@ -373,6 +373,8 @@ def get_disc_batch(X_full_batch, X_sketch_batch, generator_model, batch_counter,
         if X_full_edge is not None:
             X_gen_edge, _ = normalize_array_max(sobel_3D(X_disc))
             X_disc = np.concatenate([X_full_batch, X_disc, X_gen_edge], axis=-1)
+        elif mode == '2D':
+            X_disc = X_disc
         else:
             X_disc = np.concatenate([X_full_batch, X_disc], axis=-1)
         y_disc = np.zeros((X_disc.shape[0], 2), dtype=np.float16)
@@ -390,6 +392,8 @@ def get_disc_batch(X_full_batch, X_sketch_batch, generator_model, batch_counter,
     else:
         if X_full_edge is not None:
             X_disc = np.concatenate([X_full_batch, X_sketch_batch, X_full_edge], axis=-1)
+        elif mode=='2D':
+            X_disc = X_full_batch
         else:
             X_disc = np.concatenate([X_full_batch, X_sketch_batch], axis=-1)
         y_disc = np.zeros((X_disc.shape[0], 2), dtype=np.float16)

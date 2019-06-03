@@ -95,6 +95,7 @@ def train(**kwargs):
                                           do_plot)
 
         generator_model.compile(loss='mae', optimizer=opt_discriminator)
+        generator_model.load_weights('/mnt/sdb/logs_gan/models/double_gen_train_loss_300_right_ds/gen_weights_epoch400.h5')
         discriminator_model.trainable = False
 
         DCGAN_model = models.DCGAN(generator_model,
@@ -109,6 +110,7 @@ def train(**kwargs):
 
         discriminator_model.trainable = True
         discriminator_model.compile(loss='binary_crossentropy', optimizer=opt_discriminator)
+        discriminator_model.load_weights('/mnt/sdb/logs_gan/models/double_gen_train_loss_300_right_ds/disc_weights_epoch400.h5')
 
         gen_loss = 100
         disc_loss = 100
@@ -165,6 +167,7 @@ def train(**kwargs):
                                                            batch_counter,
                                                            patch_size,
                                                            image_data_format,
+                                                           mode='2D',
                                                            label_smoothing=label_smoothing,
                                                            label_flipping=label_flipping)
 
@@ -234,7 +237,7 @@ d_params = {"dset": "/home/fsforazz/git/GAN-MRI/UNIT/data/new_MR/", #"/mnt/sdb/b
             "batch_size": 6,
             "n_batch_per_epoch": 100,
             "nb_epoch": 401,
-            "model_name": "double_gen_train_loss_300_right_ds",
+            "model_name": "double_gen_train_loss_300_right_ds_part2",
             "epoch": 10,
             "nb_classes": 1,
             "do_plot": False,
