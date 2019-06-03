@@ -7,6 +7,7 @@ from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import nn
 from tensorflow.python.util.tf_export import tf_export
 import tensorflow as tf
+from scipy import ndimage
 
 PROF_DATA = {}
 
@@ -72,6 +73,13 @@ def sobel_3D(image, training=False):
     
     return sobel_3d
 
+
+def sobel_2D(image):
+    
+    sx = ndimage.sobel(image, axis=0, mode='constant')
+    sy = ndimage.sobel(image, axis=1, mode='constant')
+    sob = np.hypot(sx, sy)
+    return sob
 # @tfplot.autowrap(figsize=(3, 3))
 # def plot_imshow(img, *, fig, ax):
 #     ax.imshow(img)
@@ -134,3 +142,32 @@ def sobel_edges(image):
 #     output.set_shape(static_image_shape.concatenate([num_kernels]))
     return output
 
+
+def sobel_edges_2D(image):
+    """Returns a tensor holding Sobel edge maps.
+    
+    Arguments:
+      image: Image tensor with shape [batch_size, h, w, d] and type float32 or
+      float64.  The image(s) must be 2x2 or larger.
+    
+    Returns:
+      Tensor holding edge maps for each channel. Returns a tensor with shape
+      [batch_size, h, w, d, 2] where the last two dimensions hold [[dy[0], dx[0]],
+      [dy[1], dx[1]], ..., [dy[d-1], dx[d-1]]] calculated using the Sobel filter.
+    """
+    # Define vertical and horizontal Sobel filters.
+    image = tf.where(tf.is_nan(image), tf.ones_like(image) * 0, image)
+    fx = np.array([[-1, -2, -1], [0, 0, 0], [1, 2, 1]])
+    fy = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
+#     kernels = [[[-1, -2, -1], [0, 0, 0], [1, 2, 1]],
+#                [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]]
+
+    sobels = []
+    for k in [fx, fy]:
+        kernels = np.expand_dims(k, -1)
+        kernels = np.expand_dims(kernels, 0)
+        sobel = tf.nn.conv3d(image, kernels, strides = [1, 1, 1, 1], padding='SAME')
+        sobels.append(sobel)
+    sum_sobel = tf.math.square(sobels[0])+tf.math.square(sobels[1])
+    output = tf.math.sqrt(sum_sobel)
+    return output
