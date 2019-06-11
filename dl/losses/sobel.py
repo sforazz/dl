@@ -11,7 +11,7 @@ sobelFilter_3D = K.variable([[[[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]],
                            [[-2, -4, -2], [0, 0, 0], [2, 4, 2]],
                            [[-1, -2, -1], [0, 0, 0], [1, 2, 1]]]])
 sobelFilter_3D = K.expand_dims(sobelFilter_3D, axis=-2)
-sobelFilter_3D = K.cast(sobelFilter_3D, K.tf.float16)
+sobelFilter_3D = K.cast(sobelFilter_3D, K.tf.float32)
 
 #this contains both X and Y sobel filters in the format (3,3,1,2)
 #size is 3 x 3, it considers 1 input channel and has two output channels: X and Y
