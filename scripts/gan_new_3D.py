@@ -9,12 +9,10 @@ import dl.utils.general_utils as general_utils
 import dl.utils.data_utils as data_utils
 from keras.callbacks import TensorBoard
 import random
-from dl.losses.sobel import sobelLoss
+from dl.losses.sobel import sobelLoss3D
 
 
 def l1_loss(y_true, y_pred):
-    y_true = K.tf.where(K.tf.is_nan(y_true), K.tf.ones_like(y_true) * 0, y_true)
-    y_pred = K.tf.where(K.tf.is_nan(y_pred), K.tf.ones_like(y_pred) * 0, y_pred)
     return K.sum(K.abs(y_pred - y_true), axis=-1)
 
 
@@ -71,7 +69,7 @@ def train(**kwargs):
             np.save(os.path.join(dset, 'validation_T1.npy'), X_full_val)
             np.save(os.path.join(dset, 'validation_FLAIR.npy'), X_sketch_val)
         img_dim = X_full_train.shape[-4:]
-        img_dim_disc = (img_dim[0], img_dim[1], img_dim[2], 3)
+        img_dim_disc = (img_dim[0], img_dim[1], img_dim[2], 5)
     
         # Get the number of non overlapping patch and the size of input image to the discriminator
         nb_patch, img_dim_disc = data_utils.get_nb_patch_3D(img_dim_disc, patch_size, image_data_format)
@@ -84,7 +82,9 @@ def train(**kwargs):
             edge_sketch = sorted([x for x in os.listdir(os.path.join(dset, 'edge_data'))
                                   if x.endswith('.npy') and 'FLAIR' in x and 'edge' in x])
             img_dim = img_dim
-            img_dim_disc = (img_dim[0], img_dim[1], img_dim[2], 3)
+            print('Found {} parts of data'.format(len(data_full)))
+            epoch_size = n_batch_per_epoch * batch_size * len(data_full)
+            img_dim_disc = (img_dim[0], img_dim[1], img_dim[2], 5)
             nb_patch, img_dim_disc = data_utils.get_nb_patch_3D(img_dim_disc, patch_size, image_data_format)
         except:
             raise Exception('If you use data generator you must specify the image dimensions (for example, (128, 128, 128, 1)).')
@@ -124,7 +124,7 @@ def train(**kwargs):
 
 #         loss = [l1_loss, 'binary_crossentropy']
 #         loss_weights = [3E1, 1]
-        loss = [l1_loss, 'binary_crossentropy', l1_loss]
+        loss = [l1_loss, 'binary_crossentropy', sobelLoss3D]
         lambda_edge = 0
         loss_weights = [3E2, 1, lambda_edge]
         DCGAN_model.compile(loss=loss, loss_weights=loss_weights, optimizer=opt_dcgan)
@@ -161,6 +161,7 @@ def train(**kwargs):
             if e > 0 and e < 21:
                 lambda_edge = lambda_edge + 5
                 DCGAN_model.loss_weights[2] = lambda_edge
+                print('Sobel loss weight: {}'.format(DCGAN_model.loss_weights[2]))
             if e > 100:
                 lr = lr_init - 0.000002*decay
                 if lr < 0:
@@ -199,7 +200,7 @@ def train(**kwargs):
                                                                X_full_edge=X_edge_full_bt,
                                                                label_smoothing=label_smoothing,
                                                                label_flipping=label_flipping,
-                                                               d3=True)
+                                                               mode='3D')
     
                     # Update the discriminator
     #                 if z == 1 or init:
@@ -211,14 +212,13 @@ def train(**kwargs):
                     disc_loss = discriminator_model.train_on_batch(X_disc, y_disc)
                     # Create a batch to feed the generator model
                     X_gen, X_gen_target, _, X_edge_target = next(data_utils.gen_batch(X_full_train, X_sketch_train, batch_size, X3=X_edge_full, X4=X_edge_sketch))
-                    if np.isnan(X_gen).any() or np.isnan(X_gen_target).any() or np.isnan(X_edge_target).any():
-                        print('There are Nans!!')
+
                     y_gen = np.zeros((X_gen.shape[0], 2), dtype=np.uint8)
                     y_gen[:, 1] = 1
     
                     # Freeze the discriminator
                     discriminator_model.trainable = False
-                    gen_loss = DCGAN_model.train_on_batch(X_gen, [X_gen_target, y_gen, X_edge_target])
+                    gen_loss = DCGAN_model.train_on_batch(X_gen, [X_gen_target, y_gen, X_gen_target])
                     # Unfreeze the discriminator
                     discriminator_model.trainable = True
                     
@@ -270,7 +270,7 @@ d_params = {"dset": "/mnt/sdb/data_T1_to_FLAIR_normalized/", #"/data/gan_data/",
             "bn_mode": 2,
             "img_dim": (128, 128, 128, 1),
             "use_label_smoothing": True,
-            "label_flipping": 0.6,
+            "label_flipping": 0,
             "patch_size": (32, 32, 32),
             "use_mbd": True,
             "logging_dir": '/mnt/sdb/logs_gan/', # "/data/logs_gan/", #

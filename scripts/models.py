@@ -8,7 +8,8 @@ from keras.layers.pooling import MaxPooling2D
 import keras.backend as K
 import numpy as np
 from keras.layers import Convolution2D, concatenate
-from dl.utils.utilities import sobel_3D, sobel_edges, sobel_edges_2D
+from dl.utils.utilities import sobel_3D, sobel_edges, sobel_edges_2D,\
+    sobel_edges_3D
 
 
 def minb_disc(x):
@@ -290,7 +291,9 @@ def DCGAN(generator, discriminator_model, img_dim, patch_size, image_dim_orderin
     for row_idx in list_row_idx:
         for col_idx in list_col_idx:
             if image_dim_ordering == "channels_last":
-                x_patch = Lambda(lambda z: z[:, row_idx[0]:row_idx[1], col_idx[0]:col_idx[1], :])(generated_image)
+                x_patch = Lambda(lambda inputs: K.squeeze(K.stack([inputs[0][:, row_idx[0]:row_idx[1], col_idx[0]:col_idx[1], :],
+                                                                   inputs[1][:, row_idx[0]:row_idx[1], col_idx[0]:col_idx[1], :]],
+                                                                   axis=-1), axis=-2))([gen_input, generated_image])
             else:
                 x_patch = Lambda(lambda z: z[:, :, row_idx[0]:row_idx[1], col_idx[0]:col_idx[1]])(generated_image)
             list_gen_patch.append(x_patch)
@@ -325,10 +328,10 @@ def DCGAN_2D_sobel(generator, discriminator_model, img_dim, patch_size, image_di
     for row_idx in list_row_idx:
         for col_idx in list_col_idx:
             if image_dim_ordering == "channels_last":
-                x_patch = Lambda(lambda inputs: K.squeeze(K.stack([inputs[0][:, row_idx[0]:row_idx[1], col_idx[0]:col_idx[1], :],
+                x_patch = Lambda(lambda inputs: K.concatenate([inputs[0][:, row_idx[0]:row_idx[1], col_idx[0]:col_idx[1], :],
                                                                    inputs[1][:, row_idx[0]:row_idx[1], col_idx[0]:col_idx[1], :],
-                                                                   inputs[2][:, row_idx[0]:row_idx[1], col_idx[0]:col_idx[1], :]],
-                                                                   axis=-1), axis=-2))([gen_input, generated_image, generated_edge])
+                                                                   inputs[2][:, row_idx[0]:row_idx[1], col_idx[0]:col_idx[1], :],],
+                                                                   axis=-1))([gen_input, generated_image, generated_edge])
             else:
                 x_patch = Lambda(lambda z: z[:, :, row_idx[0]:row_idx[1], col_idx[0]:col_idx[1]])(generated_image)
             list_gen_patch.append(x_patch)
@@ -336,7 +339,7 @@ def DCGAN_2D_sobel(generator, discriminator_model, img_dim, patch_size, image_di
     DCGAN_output = discriminator_model(list_gen_patch)
 
     DCGAN = Model(inputs=[gen_input],
-                  outputs=[generated_image, DCGAN_output, generated_edge],
+                  outputs=[generated_image, DCGAN_output, generated_image],
                   name="DCGAN")
 
     return DCGAN
@@ -497,7 +500,7 @@ def DCGAN_3D(generator, discriminator_model, img_dim, patch_size, image_dim_orde
 
     generated_image = generator(gen_input)
 
-    generated_edge = Lambda(lambda inputs: sobel_edges(inputs))(generated_image)
+    generated_edge = Lambda(lambda inputs: sobel_edges_3D(inputs))(generated_image)
 #     generated_image = sobel_edges(generated_image)
 #     generated_edge = generated_edge.reshape((img_dim[0], img_dim[1], img_dim[2], 1))
 #     generated_image = np.concatenate((generated_image, generated_edge))
@@ -517,10 +520,10 @@ def DCGAN_3D(generator, discriminator_model, img_dim, patch_size, image_dim_orde
         for col_idx in list_col_idx:
             for sli_idx in list_sli_idx:
                 if image_dim_ordering == "channels_last":
-                    x_patch = Lambda(lambda inputs: K.squeeze(K.stack([inputs[0][:, row_idx[0]:row_idx[1], col_idx[0]:col_idx[1], sli_idx[0]:sli_idx[1], :],
-                                                                       inputs[1][:, row_idx[0]:row_idx[1], col_idx[0]:col_idx[1], sli_idx[0]:sli_idx[1], :],
-                                                                       inputs[2][:, row_idx[0]:row_idx[1], col_idx[0]:col_idx[1], sli_idx[0]:sli_idx[1], :]],
-                                                                       axis=-1), axis=-2))([gen_input, generated_image, generated_edge])
+                    x_patch = Lambda(lambda inputs: K.concatenate([inputs[0][:, row_idx[0]:row_idx[1], col_idx[0]:col_idx[1], sli_idx[0]:sli_idx[1], :],
+                                                                   inputs[1][:, row_idx[0]:row_idx[1], col_idx[0]:col_idx[1], sli_idx[0]:sli_idx[1], :],
+                                                                   inputs[2][:, row_idx[0]:row_idx[1], col_idx[0]:col_idx[1], sli_idx[0]:sli_idx[1], :]],
+                                                                   axis=-1))([gen_input, generated_image, generated_edge])
                 else:
                     x_patch = Lambda(lambda z: z[:, :, row_idx[0]:row_idx[1], col_idx[0]:col_idx[1], sli_idx[0]:sli_idx[1]])(generated_image)
                 list_gen_patch.append(x_patch)
@@ -528,7 +531,7 @@ def DCGAN_3D(generator, discriminator_model, img_dim, patch_size, image_dim_orde
     DCGAN_output = discriminator_model(list_gen_patch)
 
     DCGAN = Model(inputs=[gen_input],
-                  outputs=[generated_image, DCGAN_output, generated_edge],
+                  outputs=[generated_image, DCGAN_output, generated_image],
                   name="DCGAN")
 
     return DCGAN
