@@ -41,44 +41,80 @@ def clear_prof_data():
     PROF_DATA = {}
     
 
-def sobel_3D(image, training=False):
+def sobel_3D(image):
     
-    fx = np.array([[[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]],
-                   [[-2, 0, 2], [-4, 0, 4], [-2, 0, 2]],
-                   [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]])
-    fy = np.array([[[-1, -2, -1], [-2, -4, -2], [-1, -2, -1]],
-                   [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
-                   [[1, 2, 1], [2, 4, 2], [1, 2, 1]]])
-    fz = np.array([[[-1, -2, -1], [0, 0, 0], [1, 2, 1]],
-                   [[-2, -4, -2], [0, 0, 0], [2, 4, 2]],
-                   [[-1, -2, -1], [0, 0, 0], [1, 2, 1]]])
-    
-    where_are_NaNs = np.isnan(image)
-    image[where_are_NaNs] = 0
     if len(image.shape) > 3:
-        if training:
-            image = image[:, :, :, :, 0]
-        sobel_3d = np.zeros((image.shape))
+        sob = np.zeros((list(image.shape[:-1])+[3]), dtype=np.float16)
         for i in range(image.shape[0]):
-            im_filt_x = ss.convolve(image[i, :, :, :, 0], fx, mode='same')
-            im_filt_y = ss.convolve(image[i, :, :, :, 0], fy, mode='same')
-            im_filt_z = ss.convolve(image[i, :, :, :, 0], fz, mode='same')
-            sobel_3d[i, :] = np.expand_dims(np.sqrt((im_filt_x**2+im_filt_y**2+im_filt_z**2)), axis=-1)
-    else:
-        im_filt_x = ss.convolve(image, fx, mode='same')
-        im_filt_y = ss.convolve(image, fy, mode='same')
-        im_filt_z = ss.convolve(image, fz, mode='same')
-        
-        sobel_3d = np.sqrt((im_filt_x**2+im_filt_y**2+im_filt_z**2))
-    
-    return sobel_3d
+            sx = ndimage.sobel(image[i, :, :, :, 0], axis=0, mode='constant')
+            sy = ndimage.sobel(image[i, :, :, :, 0], axis=1, mode='constant')
+            sz = ndimage.sobel(image[i, :, :, :, 0], axis=2, mode='constant')
+            sx = sx.reshape((image.shape[1], image.shape[2], image.shape[3], 1))
+            sy = sy.reshape((image.shape[1], image.shape[2], image.shape[3], 1))
+            sz = sz.reshape((image.shape[1], image.shape[2], image.shape[3], 1))
+            concat = np.concatenate([sx, sy, sz], axis=-1)
+            sob[i, :, :, :, :] = concat
+    else:         
+        sx = ndimage.sobel(image, axis=0, mode='constant')
+        sy = ndimage.sobel(image, axis=1, mode='constant')
+        sz = ndimage.sobel(image, axis=2, mode='constant')
+        sx = sx.reshape((image.shape[0], image.shape[1], image.shape[2], 1))
+        sy = sy.reshape((image.shape[0], image.shape[1], image.shape[2], 1))
+        sz = sz.reshape((image.shape[0], image.shape[1], image.shape[2], 1))
+        sob = np.concatenate([sx, sy, sz], axis=-1)
+    return sob
+
+
+# def sobel_3D(image, training=False):
+#     
+#     fx = np.array([[[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]],
+#                    [[-2, 0, 2], [-4, 0, 4], [-2, 0, 2]],
+#                    [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]])
+#     fy = np.array([[[-1, -2, -1], [-2, -4, -2], [-1, -2, -1]],
+#                    [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+#                    [[1, 2, 1], [2, 4, 2], [1, 2, 1]]])
+#     fz = np.array([[[-1, -2, -1], [0, 0, 0], [1, 2, 1]],
+#                    [[-2, -4, -2], [0, 0, 0], [2, 4, 2]],
+#                    [[-1, -2, -1], [0, 0, 0], [1, 2, 1]]])
+#     
+#     where_are_NaNs = np.isnan(image)
+#     image[where_are_NaNs] = 0
+#     if len(image.shape) > 3:
+#         if training:
+#             image = image[:, :, :, :, 0]
+#         sobel_3d = np.zeros((image.shape))
+#         for i in range(image.shape[0]):
+#             im_filt_x = ss.convolve(image[i, :, :, :, 0], fx, mode='same')
+#             im_filt_y = ss.convolve(image[i, :, :, :, 0], fy, mode='same')
+#             im_filt_z = ss.convolve(image[i, :, :, :, 0], fz, mode='same')
+#             sobel_3d[i, :] = np.expand_dims(np.sqrt((im_filt_x**2+im_filt_y**2+im_filt_z**2)), axis=-1)
+#     else:
+#         im_filt_x = ss.convolve(image, fx, mode='same')
+#         im_filt_y = ss.convolve(image, fy, mode='same')
+#         im_filt_z = ss.convolve(image, fz, mode='same')
+#         
+#         sobel_3d = np.sqrt((im_filt_x**2+im_filt_y**2+im_filt_z**2))
+#     
+#     return sobel_3d
 
 
 def sobel_2D(image):
     
-    sx = ndimage.sobel(image, axis=0, mode='constant')
-    sy = ndimage.sobel(image, axis=1, mode='constant')
-    sob = np.hypot(sx, sy)
+    if len(image.shape) > 2:
+        sob = np.zeros((list(image.shape[:-1])+[2]))
+        for i in range(image.shape[0]):
+            sx = ndimage.sobel(image[i, :, :, 0], axis=0, mode='constant')
+            sy = ndimage.sobel(image[i, :, :, 0], axis=1, mode='constant')
+            sx = sx.reshape((image.shape[1], image.shape[2], 1))
+            sy = sy.reshape((image.shape[1], image.shape[2], 1))
+            concat = np.concatenate([sx, sy], axis=-1)
+            sob[i, :, :, :] = concat
+    else:         
+        sx = ndimage.sobel(image, axis=0, mode='constant')
+        sy = ndimage.sobel(image, axis=1, mode='constant')
+        sx = sx.reshape((image.shape[0], image.shape[1], 1))
+        sy = sy.reshape((image.shape[0], image.shape[1], 1))
+        sob = np.concatenate([sx, sy], axis=-1)
     return sob
 # @tfplot.autowrap(figsize=(3, 3))
 # def plot_imshow(img, *, fig, ax):
@@ -143,31 +179,62 @@ def sobel_edges(image):
     return output
 
 
-def sobel_edges_2D(image):
-    """Returns a tensor holding Sobel edge maps.
-    
-    Arguments:
-      image: Image tensor with shape [batch_size, h, w, d] and type float32 or
-      float64.  The image(s) must be 2x2 or larger.
-    
-    Returns:
-      Tensor holding edge maps for each channel. Returns a tensor with shape
-      [batch_size, h, w, d, 2] where the last two dimensions hold [[dy[0], dx[0]],
-      [dy[1], dx[1]], ..., [dy[d-1], dx[d-1]]] calculated using the Sobel filter.
-    """
-    # Define vertical and horizontal Sobel filters.
-    image = tf.where(tf.is_nan(image), tf.ones_like(image) * 0, image)
-    fx = np.array([[-1, -2, -1], [0, 0, 0], [1, 2, 1]])
-    fy = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
-#     kernels = [[[-1, -2, -1], [0, 0, 0], [1, 2, 1]],
-#                [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]]
+sobelFilter = tf.Variable([[[[1.,  1.]], [[0.,  2.]],[[-1.,  1.]]],
+                          [[[2.,  0.]], [[0.,  0.]],[[-2.,  0.]]],
+                          [[[1., -1.]], [[0., -2.]],[[-1., -1.]]]])
 
-    sobels = []
-    for k in [fx, fy]:
-        kernels = np.expand_dims(k, -1)
-        kernels = np.expand_dims(kernels, 0)
-        sobel = tf.nn.conv3d(image, kernels, strides = [1, 1, 1, 1], padding='SAME')
-        sobels.append(sobel)
-    sum_sobel = tf.math.square(sobels[0])+tf.math.square(sobels[1])
-    output = tf.math.sqrt(sum_sobel)
+def expandedSobel(inputTensor):
+
+    #this considers data_format = 'channels_last'
+    inputChannels = tf.reshape(tf.ones_like(inputTensor[0, 0, 0, :]),(1, 1, -1, 1))
+    #if you're using 'channels_first', use inputTensor[0,:,0,0] above
+
+    return sobelFilter * inputChannels
+
+def sobel_edges_2D(image):
+
+    #get the sobel filter repeated for each input channel
+    filt = expandedSobel(image)
+
+    #calculate the sobel filters for yTrue and yPred
+    #this generates twice the number of input channels 
+    #a X and Y channel for each input channel
+    output = tf.nn.depthwise_conv2d(image, filt, padding='SAME', strides=[1, 1, 1, 1])
+
+    #now you just apply the mse:
+    return output
+
+sobelFilter_3D = tf.Variable([[[[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], 
+                           [[-2, 0, 2], [-4, 0, 4], [-2, 0, 2]], 
+                           [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]],
+                          [[[-1, -2, -1], [-2, -4, -2], [-1, -2, -1]], 
+                           [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                           [[1, 2, 1], [2, 4, 2], [1, 2, 1]]],
+                          [[[-1, -2, -1], [0, 0, 0], [1, 2, 1]],
+                           [[-2, -4, -2], [0, 0, 0], [2, 4, 2]],
+                           [[-1, -2, -1], [0, 0, 0], [1, 2, 1]]]])
+sobelFilter_3D = tf.expand_dims(sobelFilter_3D, axis=-2)
+sobelFilter_3D = tf.cast(sobelFilter_3D, tf.float32)
+
+def expandedSobel3D(inputTensor):
+
+    #this considers data_format = 'channels_last'
+    inputChannels = tf.reshape(tf.ones_like(inputTensor[0, 0, 0, 0, :]), (1, 1, 1, -1, 1))
+    #if you're using 'channels_first', use inputTensor[0,:,0,0] above
+
+    return sobelFilter_3D * inputChannels
+
+
+def sobel_edges_3D(image):
+
+    #get the sobel filter repeated for each input channel
+#     filt = expandedSobel3D(image)
+
+    #calculate the sobel filters for yTrue and yPred
+    #this generates twice the number of input channels 
+    #a X and Y channel for each input channel
+    output = tf.nn.conv3d(image, sobelFilter_3D, strides=[1, 1, 1, 1, 1], padding='SAME')
+
+    #now you just apply the mse:
+#     return K.mean(K.square(sobelTrue - sobelPred))
     return output
