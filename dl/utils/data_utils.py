@@ -179,8 +179,8 @@ def load_data_3D(data_dir, data_type, image_data_format, bias_corr=True, img_wid
         facade_photos_h5 = [facade_photos_h5[x] for x in idx]
         facade_labels_h5 = [facade_labels_h5[x] for x in idx]
     else:
-        facade_photos_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'A')))[88:110]
-        facade_labels_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'B')))[88:110]
+        facade_photos_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'A')))
+        facade_labels_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'B')))
 #     facade_labels_h5 = [f for f in os.listdir(os.path.join(data_dir_path, 'facades')) if '.h5' in f]
     dx = 320
     dy = 320

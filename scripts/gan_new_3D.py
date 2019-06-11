@@ -257,9 +257,9 @@ def launch_training(**kwargs):
     train(**kwargs)
 
 
-d_params = {"dset": "/mnt/sdb/data_T1_to_FLAIR_normalized/", #"/data/gan_data/",#
+d_params = {"dset": "/data_large/gan_data_bc/",#"/mnt/sdb/data_T1_to_FLAIR_normalized/", #
             "generator": 'upsampling',
-            "batch_size": 2,
+            "batch_size": 3,
             "n_batch_per_epoch": 100,
             "nb_epoch": 201,
             "model_name": "3D_lf=0.6_ps=32_bs=2_sobel",
@@ -273,8 +273,8 @@ d_params = {"dset": "/mnt/sdb/data_T1_to_FLAIR_normalized/", #"/data/gan_data/",
             "label_flipping": 0,
             "patch_size": (32, 32, 32),
             "use_mbd": True,
-            "logging_dir": '/mnt/sdb/logs_gan/', # "/data/logs_gan/", #
-            "use_generator": False
+            "logging_dir": "/data_large/logs_gan/", #'/mnt/sdb/logs_gan/', # 
+            "use_generator": True
             }
 
 launch_training(**d_params)
