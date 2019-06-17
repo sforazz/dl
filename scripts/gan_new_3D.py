@@ -57,10 +57,10 @@ def train(**kwargs):
             X_sketch_train = np.load(os.path.join(dset, 'training_FLAIR.npy'))
         except:
             X_full_train, X_sketch_train, X_edge_full, X_edge_sketch, _ = data_utils.load_data_3D(dset, 'train', image_data_format)
-            np.save(os.path.join(dset, 'training_T1_edge_bc_part5.npy'), X_edge_full)
-            np.save(os.path.join(dset, 'training_FLAIR_edge_bc_part5.npy'), X_edge_sketch)
-            np.save(os.path.join(dset, 'training_T1_bc_part5.npy'), X_full_train)
-            np.save(os.path.join(dset, 'training_FLAIR_bc_part5.npy'), X_sketch_train)
+            np.save(os.path.join(dset, 'training_T1_edge_bc_part7.npy'), X_edge_full)
+            np.save(os.path.join(dset, 'training_FLAIR_edge_bc_part7.npy'), X_edge_sketch)
+            np.save(os.path.join(dset, 'training_T1_bc_part7.npy'), X_full_train)
+            np.save(os.path.join(dset, 'training_FLAIR_bc_part7.npy'), X_sketch_train)
         try:
             X_full_val = np.load(os.path.join(dset, 'validation_T1.npy'))
             X_sketch_val = np.load(os.path.join(dset, 'validation_FLAIR.npy'))
@@ -257,12 +257,12 @@ def launch_training(**kwargs):
     train(**kwargs)
 
 
-d_params = {"dset": "/data_large/gan_data_bc/",#"/mnt/sdb/data_T1_to_FLAIR_normalized/", #
+d_params = {"dset": "/data_large/gan_data_bc_T1/",#"/mnt/sdb/data_T1_to_FLAIR_normalized_new/", #
             "generator": 'upsampling',
-            "batch_size": 3,
+            "batch_size": 2,
             "n_batch_per_epoch": 100,
             "nb_epoch": 201,
-            "model_name": "3D_lf=0.6_ps=32_bs=2_sobel",
+            "model_name": "3D_lf=0.1_ps=32_bs=2_sobel",
             "epoch": 10,
             "nb_classes": 1,
             "do_plot": False,
@@ -270,10 +270,10 @@ d_params = {"dset": "/data_large/gan_data_bc/",#"/mnt/sdb/data_T1_to_FLAIR_norma
             "bn_mode": 2,
             "img_dim": (128, 128, 128, 1),
             "use_label_smoothing": True,
-            "label_flipping": 0,
+            "label_flipping": 0.1,
             "patch_size": (32, 32, 32),
             "use_mbd": True,
-            "logging_dir": "/data_large/logs_gan/", #'/mnt/sdb/logs_gan/', # 
+            "logging_dir": "/data_large/logs_gan_T1/", #'/mnt/sdb/logs_gan/', # 
             "use_generator": True
             }
 
