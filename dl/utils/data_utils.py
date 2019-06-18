@@ -163,7 +163,7 @@ def load_data(data_dir, data_type, image_data_format, img_width=256, img_height=
         return final_facade_photos, final_facade_labels
 
 
-def load_data_3D(data_dir, data_type, image_data_format, bias_corr=True, img_width=128, img_height=128, img_depth=128, mb=[3, 3, 2], bs=None,
+def load_data_3D(data_dir, data_type, image_data_format, bias_corr=False, img_width=128, img_height=128, img_depth=128, mb=[3, 3, 2], bs=None,
                  init=None, extract_edges=True):
 
         # Get all .h5 files containing training images
