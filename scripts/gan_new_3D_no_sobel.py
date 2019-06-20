@@ -47,7 +47,7 @@ def train(**kwargs):
     # Setup environment (logging directory etc)
     general_utils.setup_logging(model_name, logging_dir=logging_dir)
     
-    tensorboard = TensorBoard(log_dir="logs/tensorboard".format(time.time()))
+    tensorboard = TensorBoard(log_dir=os.path.join(logging_dir, "logs/tensorboard").format(time.time()))
 
     # Load and rescale data
     if not use_generator:
@@ -228,7 +228,7 @@ def launch_training(**kwargs):
     train(**kwargs)
 
 
-d_params = {"dset": "/data/gan_data/",#"/mnt/sdb/data_T1_to_FLAIR_normalized/", #
+d_params = {"dset": "/data/gan_data_bc_T1/",#"/mnt/sdb/data_T1_to_FLAIR_normalized/", #
             "generator": 'upsampling',
             "batch_size": 2,
             "n_batch_per_epoch": 100,
@@ -244,7 +244,7 @@ d_params = {"dset": "/data/gan_data/",#"/mnt/sdb/data_T1_to_FLAIR_normalized/", 
             "label_flipping": 0,
             "patch_size": (32, 32, 32),
             "use_mbd": True,
-            "logging_dir": "/data/logs_gan/", #'/mnt/sdb/logs_gan/',  
+            "logging_dir": "/data/logs_gan_T1/", #'/mnt/sdb/logs_gan/',  
             "use_generator": True
             }
 
