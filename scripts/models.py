@@ -347,8 +347,8 @@ def DCGAN_2D_sobel(generator, discriminator_model, img_dim, patch_size, image_di
 
 def conv_block_unet_3D(x, f, name, bn_mode, bn_axis, bn=True, strides=(2,2,2)):
 
+    x = Conv3D(f, (4, 4, 4), strides=strides, name=name, padding="same")(x)
     x = LeakyReLU(0.2)(x)
-    x = Conv3D(f, (3, 3, 3), strides=strides, name=name, padding="same")(x)
     if bn:
         x = BatchNormalization(axis=bn_axis)(x)
 
@@ -357,9 +357,9 @@ def conv_block_unet_3D(x, f, name, bn_mode, bn_axis, bn=True, strides=(2,2,2)):
 
 def up_conv_block_unet_3D(x, x2, f, name, bn_mode, bn_axis, bn=True, dropout=True):
 
-    x = Activation("relu")(x)
     x = UpSampling3D(size=(2, 2, 2))(x)
-    x = Conv3D(f, (3, 3, 3), name=name, padding="same")(x)
+    x = Conv3D(f, (4, 4, 4), name=name, padding="same")(x)
+    x = Activation("relu")(x)
     if bn:
         x = BatchNormalization(axis=bn_axis)(x)
     if dropout:
@@ -389,17 +389,19 @@ def generator_unet_3D_upsampling(img_dim, bn_mode, model_name="generator_unet_3D
     list_nb_filters = [nb_filters * min(8, (2 ** i)) for i in range(nb_conv)]
 
     # Encoder
-    list_encoder = [Conv3D(list_nb_filters[0], (3, 3, 3),
-                           strides=(2, 2, 2), name="unet_conv3D_1", padding="same")(unet_input)]
+    x = Conv3D(list_nb_filters[0], (4, 4, 4),
+               strides=(2, 2, 2), name="unet_conv3D_1", padding="same")(unet_input)
+    list_encoder = [LeakyReLU(0.2)(x)]
     for i, f in enumerate(list_nb_filters[1:]):
         name = "unet_conv3D_%s" % (i + 2)
         conv = conv_block_unet_3D(list_encoder[-1], f, name, bn_mode, bn_axis)
         list_encoder.append(conv)
 
     # Prepare decoder filters
-    list_nb_filters = list_nb_filters[:-2][::-1]
-    if len(list_nb_filters) < nb_conv - 1:
-        list_nb_filters.append(nb_filters)
+#     list_nb_filters = list_nb_filters[:-2][::-1]
+#     if len(list_nb_filters) < nb_conv - 1:
+#         list_nb_filters.append(nb_filters)
+    list_nb_filters = [512, 512, 512, 512, 256, 128]
 
     # Decoder
     list_decoder = [up_conv_block_unet_3D(list_encoder[-1], list_encoder[-2],
@@ -416,7 +418,7 @@ def generator_unet_3D_upsampling(img_dim, bn_mode, model_name="generator_unet_3D
 
     x = Activation("relu")(list_decoder[-1])
     x = UpSampling3D(size=(2, 2, 2))(x)
-    x = Conv3D(nb_channels, (3, 3, 3), name="last_conv", padding="same")(x)
+    x = Conv3D(nb_channels, (4, 4, 4), name="last_conv", padding="same")(x)
     x = Activation("tanh")(x)
 
     generator_unet = Model(inputs=[unet_input], outputs=[x])
@@ -440,18 +442,19 @@ def DCGAN_discriminator_3D(img_dim, nb_patch, bn_mode, model_name="DCGAN_discrim
 
     nb_filters = 64
     nb_conv = int(np.floor(np.log(img_dim[1]) / np.log(2)))
-    list_filters = [nb_filters * min(8, (2 ** i)) for i in range(nb_conv)]
+#     list_filters = [nb_filters * min(8, (2 ** i)) for i in range(nb_conv)]
+    list_filters = [64, 128, 256, 512]
 
     # First conv
     x_input = Input(shape=img_dim, name="discriminator_input")
-    x = Conv3D(list_filters[0], (3, 3, 3), strides=(2, 2, 2), name="disc_conv3d_1", padding="same")(x_input)
-    x = BatchNormalization(axis=bn_axis)(x)
+    x = Conv3D(list_filters[0], (4, 4, 4), strides=(2, 2, 2), name="disc_conv3d_1", padding="same")(x_input)
+#     x = BatchNormalization(axis=bn_axis)(x)
     x = LeakyReLU(0.2)(x)
 
     # Next convs
     for i, f in enumerate(list_filters[1:]):
         name = "disc_conv2d_%s" % (i + 2)
-        x = Conv3D(f, (3, 3, 3), strides=(2, 2, 2), name=name, padding="same")(x)
+        x = Conv3D(f, (4, 4, 4), strides=(2, 2, 2), name=name, padding="same")(x)
         x = BatchNormalization(axis=bn_axis)(x)
         x = LeakyReLU(0.2)(x)
 
@@ -487,7 +490,8 @@ def DCGAN_discriminator_3D(img_dim, nb_patch, bn_mode, model_name="DCGAN_discrim
         x_mbd = MBD(x_mbd)
         x = Concatenate(axis=bn_axis)([x, x_mbd])
 
-    x_out = Dense(2, activation="softmax", name="disc_output")(x)
+#     x_out = Dense(2, activation="softmax", name="disc_output")(x)
+    x_out = Dense(2, activation="sigmoid", name="disc_output")(x)
 
     discriminator_model = Model(inputs=list_input, outputs=[x_out], name=model_name)
 
@@ -593,9 +597,9 @@ def DCGAN_3D_no_sobel_2(generator, discriminator_model, img_dim, patch_size, ima
         for col_idx in list_col_idx:
             for sli_idx in list_sli_idx:
                 if image_dim_ordering == "channels_last":
-                    x_patch = Lambda(lambda inputs: K.squeeze(K.stack([inputs[0][:, row_idx[0]:row_idx[1], col_idx[0]:col_idx[1], sli_idx[0]:sli_idx[1], :],
-                                                                       inputs[1][:, row_idx[0]:row_idx[1], col_idx[0]:col_idx[1], sli_idx[0]:sli_idx[1], :]],
-                                                                       axis=-1), axis=-2))([gen_input, generated_image])
+                    x_patch = Lambda(lambda inputs: K.concatenate([inputs[0][:, row_idx[0]:row_idx[1], col_idx[0]:col_idx[1], sli_idx[0]:sli_idx[1], :],
+                                                                   inputs[1][:, row_idx[0]:row_idx[1], col_idx[0]:col_idx[1], sli_idx[0]:sli_idx[1], :]],
+                                                                   axis=-1))([gen_input, generated_image])
                 else:
                     x_patch = Lambda(lambda z: z[:, :, row_idx[0]:row_idx[1], col_idx[0]:col_idx[1], sli_idx[0]:sli_idx[1]])(generated_image)
                 list_gen_patch.append(x_patch)

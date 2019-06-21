@@ -233,7 +233,7 @@ d_params = {"dset": "/data/gan_data_bc_T1/",#"/mnt/sdb/data_T1_to_FLAIR_normaliz
             "batch_size": 2,
             "n_batch_per_epoch": 100,
             "nb_epoch": 401,
-            "model_name": "3D_lf=0_ps=32_bs=2_no_sobel_2channels_e=400",
+            "model_name": "3D_lf=0_ps=32_bs=2_no_sobel_new_models_e=400",
             "epoch": 10,
             "nb_classes": 1,
             "do_plot": False,
