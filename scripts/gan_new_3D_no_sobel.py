@@ -42,7 +42,7 @@ def train(**kwargs):
     img_dim = kwargs["img_dim"]
     
     epoch_size = n_batch_per_epoch * batch_size * 5
-    lr_init = 1E-5
+    lr_init = 2E-4
 
     # Setup environment (logging directory etc)
     general_utils.setup_logging(model_name, logging_dir=logging_dir)
@@ -244,7 +244,7 @@ d_params = {"dset": "/data/gan_data_bc_T1/",#"/mnt/sdb/data_T1_to_FLAIR_normaliz
             "label_flipping": 0,
             "patch_size": (32, 32, 32),
             "use_mbd": True,
-            "logging_dir": "/data/logs_gan_T1/", #'/mnt/sdb/logs_gan/',  
+            "logging_dir": "/data/logs_gan_T1/", #'/mnt/sdb/logs_gan/',  #
             "use_generator": True
             }
 

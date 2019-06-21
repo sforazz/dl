@@ -398,10 +398,10 @@ def generator_unet_3D_upsampling(img_dim, bn_mode, model_name="generator_unet_3D
         list_encoder.append(conv)
 
     # Prepare decoder filters
-#     list_nb_filters = list_nb_filters[:-2][::-1]
-#     if len(list_nb_filters) < nb_conv - 1:
-#         list_nb_filters.append(nb_filters)
-    list_nb_filters = [512, 512, 512, 512, 256, 128]
+    list_nb_filters = list_nb_filters[:-2][::-1]
+    if len(list_nb_filters) < nb_conv - 1:
+        list_nb_filters.append(nb_filters)
+#     list_nb_filters = [512, 512, 512, 256, 128]
 
     # Decoder
     list_decoder = [up_conv_block_unet_3D(list_encoder[-1], list_encoder[-2],
