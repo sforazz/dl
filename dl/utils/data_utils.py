@@ -394,8 +394,8 @@ def get_disc_batch(X_full_batch, X_sketch_batch, generator_model, batch_counter,
         elif X_full_edge is not None and mode == '2D':
             X_gen_edge = sobel_2D(X_disc)
             X_disc = np.concatenate([X_full_batch, X_disc, X_gen_edge], axis=-1)
-        else:
-            X_disc = np.concatenate([X_full_batch, X_disc], axis=-1)
+#         else:
+#             X_disc = np.concatenate([X_disc], axis=-1)
         y_disc = np.zeros((X_disc.shape[0], 2), dtype=np.float16)
         if label_smoothing:
             y_disc[:, 1] = np.random.uniform(low=0, high=0.3, size=y_disc.shape[0])
@@ -412,7 +412,8 @@ def get_disc_batch(X_full_batch, X_sketch_batch, generator_model, batch_counter,
         if X_full_edge is not None:
             X_disc = np.concatenate([X_full_batch, X_sketch_batch, X_full_edge], axis=-1)
         else:
-            X_disc = np.concatenate([X_full_batch, X_sketch_batch], axis=-1)
+#             X_disc = np.concatenate([X_full_batch, X_sketch_batch], axis=-1)
+            X_disc = X_full_batch
         y_disc = np.zeros((X_disc.shape[0], 2), dtype=np.float16)
         if label_smoothing:
             y_disc[:, 1] = np.random.uniform(low=0.7, high=1.2, size=y_disc.shape[0])
