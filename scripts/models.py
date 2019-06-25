@@ -347,7 +347,7 @@ def DCGAN_2D_sobel(generator, discriminator_model, img_dim, patch_size, image_di
 
 def conv_block_unet_3D(x, f, name, bn_mode, bn_axis, bn=True, strides=(2,2,2)):
 
-    x = Conv3D(f, (4, 4, 4), strides=strides, name=name, padding="same")(x)
+    x = Conv3D(f, (3, 3, 3), strides=strides, name=name, padding="same")(x)
     x = LeakyReLU(0.2)(x)
     if bn:
         x = BatchNormalization(axis=bn_axis)(x)
@@ -358,7 +358,7 @@ def conv_block_unet_3D(x, f, name, bn_mode, bn_axis, bn=True, strides=(2,2,2)):
 def up_conv_block_unet_3D(x, x2, f, name, bn_mode, bn_axis, bn=True, dropout=True):
 
     x = UpSampling3D(size=(2, 2, 2))(x)
-    x = Conv3D(f, (4, 4, 4), name=name, padding="same")(x)
+    x = Conv3D(f, (3, 3, 3), name=name, padding="same")(x)
     x = Activation("relu")(x)
     if bn:
         x = BatchNormalization(axis=bn_axis)(x)
@@ -389,7 +389,7 @@ def generator_unet_3D_upsampling(img_dim, bn_mode, model_name="generator_unet_3D
     list_nb_filters = [nb_filters * min(8, (2 ** i)) for i in range(nb_conv)]
 
     # Encoder
-    x = Conv3D(list_nb_filters[0], (4, 4, 4),
+    x = Conv3D(list_nb_filters[0], (3, 3, 3),
                strides=(2, 2, 2), name="unet_conv3D_1", padding="same")(unet_input)
     list_encoder = [LeakyReLU(0.2)(x)]
     for i, f in enumerate(list_nb_filters[1:]):
@@ -418,7 +418,7 @@ def generator_unet_3D_upsampling(img_dim, bn_mode, model_name="generator_unet_3D
 
     x = Activation("relu")(list_decoder[-1])
     x = UpSampling3D(size=(2, 2, 2))(x)
-    x = Conv3D(nb_channels, (4, 4, 4), name="last_conv", padding="same")(x)
+    x = Conv3D(nb_channels, (3, 3, 3), name="last_conv", padding="same")(x)
     x = Activation("tanh")(x)
 
     generator_unet = Model(inputs=[unet_input], outputs=[x])
@@ -447,49 +447,49 @@ def DCGAN_discriminator_3D(img_dim, nb_patch, bn_mode, model_name="DCGAN_discrim
 
     # First conv
     x_input = Input(shape=img_dim, name="discriminator_input")
-    x = Conv3D(list_filters[0], (4, 4, 4), strides=(2, 2, 2), name="disc_conv3d_1", padding="same")(x_input)
+    x = Conv3D(list_filters[0], (3, 3, 3), strides=(2, 2, 2), name="disc_conv3d_1", padding="same")(x_input)
 #     x = BatchNormalization(axis=bn_axis)(x)
     x = LeakyReLU(0.2)(x)
 
     # Next convs
     for i, f in enumerate(list_filters[1:]):
-        name = "disc_conv2d_%s" % (i + 2)
-        x = Conv3D(f, (4, 4, 4), strides=(2, 2, 2), name=name, padding="same")(x)
+        name = "disc_conv3d_%s" % (i + 2)
+        x = Conv3D(f, (3, 3, 3), strides=(2, 2, 2), name=name, padding="same")(x)
         x = BatchNormalization(axis=bn_axis)(x)
         x = LeakyReLU(0.2)(x)
 
     x_flat = Flatten()(x)
-    x = Dense(2, activation="softmax", name="disc_dense")(x_flat)
+    x = Dense(2, activation="sigmoid", name="disc_dense")(x_flat)
 
     PatchGAN = Model(inputs=[x_input], outputs=[x, x_flat], name="PatchGAN")
     print("PatchGAN summary")
     PatchGAN.summary()
-
+ 
     x = [PatchGAN(patch)[0] for patch in list_input]
     x_mbd = [PatchGAN(patch)[1] for patch in list_input]
-
+ 
     if len(x) > 1:
         x = Concatenate(axis=bn_axis)(x)
     else:
         x = x[0]
-
+ 
     if use_mbd:
         if len(x_mbd) > 1:
             x_mbd = Concatenate(axis=bn_axis)(x_mbd)
         else:
             x_mbd = x_mbd[0]
- 
+  
         num_kernels = 100
         dim_per_kernel = 5
- 
+  
         M = Dense(num_kernels * dim_per_kernel, use_bias=False, activation=None)
         MBD = Lambda(minb_disc, output_shape=lambda_output)
- 
+  
         x_mbd = M(x_mbd)
         x_mbd = Reshape((num_kernels, dim_per_kernel))(x_mbd)
         x_mbd = MBD(x_mbd)
         x = Concatenate(axis=bn_axis)([x, x_mbd])
-
+ 
 #     x_out = Dense(2, activation="softmax", name="disc_output")(x)
     x_out = Dense(2, activation="sigmoid", name="disc_output")(x)
 

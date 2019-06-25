@@ -146,8 +146,8 @@ def train(**kwargs):
             start = time.time()
             dis_losses = []
             gen_losses = []
-            if e > 200:
-                lr = lr_init - 0.000001*decay
+            if e > 100:
+                lr = lr_init - 0.000002*decay
                 if lr < 0:
                     lr = 2.710505431213761e-20
                 else:
@@ -228,11 +228,11 @@ def launch_training(**kwargs):
     train(**kwargs)
 
 
-d_params = {"dset": "/mnt/sdb/data_T1_to_FLAIR_normalized/", #"/data/gan_data_bc_T1/",#
+d_params = {"dset": "/data/gan_data_bc_T1/",#"/mnt/sdb/data_T1_to_FLAIR_normalized_new/", #
             "generator": 'upsampling',
             "batch_size": 2,
             "n_batch_per_epoch": 100,
-            "nb_epoch": 401,
+            "nb_epoch": 201,
             "model_name": "3D_lf=0_ps=32_bs=2_no_sobel_new_models_e=400",
             "epoch": 10,
             "nb_classes": 1,
@@ -242,9 +242,9 @@ d_params = {"dset": "/mnt/sdb/data_T1_to_FLAIR_normalized/", #"/data/gan_data_bc
             "img_dim": (128, 128, 128, 1),
             "use_label_smoothing": True,
             "label_flipping": 0,
-            "patch_size": (32, 32, 32),
-            "use_mbd": True,
-            "logging_dir": '/mnt/sdb/logs_gan/',  #"/data/logs_gan_T1/", #
+            "patch_size": (16, 16, 16),
+            "use_mbd": False,
+            "logging_dir": "/data/logs_gan_T1/", #'/mnt/sdb/logs_gan/',  #
             "use_generator": True
             }
 
