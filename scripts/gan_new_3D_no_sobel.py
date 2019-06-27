@@ -55,10 +55,9 @@ def train(**kwargs):
             X_full_train = np.load(os.path.join(dset, 'training_T1.npy'))
             X_sketch_train = np.load(os.path.join(dset, 'training_FLAIR.npy'))
         except:
-            X_full_train, X_sketch_train, _ = data_utils.load_data_3D(dset, 'train', image_data_format,
-                                                                      extract_edges=False)
-            np.save(os.path.join(dset, 'training_T1.npy'), X_full_train)
-            np.save(os.path.join(dset, 'training_FLAIR.npy'), X_sketch_train)
+            X_full_train, X_sketch_train, _ = data_utils.load_data_3D(dset, 'train', extract_edges=False)
+            np.save(os.path.join(dset, 'training_ref_tot.npy'), X_full_train)
+            np.save(os.path.join(dset, 'training_target_tot.npy'), X_sketch_train)
         img_dim = X_full_train.shape[-4:]
     
         # Get the number of non overlapping patch and the size of input image to the discriminator
@@ -228,7 +227,7 @@ def launch_training(**kwargs):
     train(**kwargs)
 
 
-d_params = {"dset": "/data/gan_data_bc_T1/",#"/mnt/sdb/data_T1_to_FLAIR_normalized_new/", #
+d_params = {"dset": "/data/brats_data/",#"/mnt/sdb/data_T1_to_FLAIR_normalized_new/", #
             "generator": 'upsampling',
             "batch_size": 2,
             "n_batch_per_epoch": 100,
@@ -242,10 +241,10 @@ d_params = {"dset": "/data/gan_data_bc_T1/",#"/mnt/sdb/data_T1_to_FLAIR_normaliz
             "img_dim": (128, 128, 128, 1),
             "use_label_smoothing": True,
             "label_flipping": 0,
-            "patch_size": (16, 16, 16),
+            "patch_size": (32, 32, 32),
             "use_mbd": False,
-            "logging_dir": "/data/logs_gan_T1/", #'/mnt/sdb/logs_gan/',  #
-            "use_generator": True
+            "logging_dir": "/data/logs_brats/", #'/mnt/sdb/logs_gan/',  #
+            "use_generator": False
             }
 
 launch_training(**d_params)
