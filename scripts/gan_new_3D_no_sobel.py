@@ -41,7 +41,7 @@ def train(**kwargs):
     use_generator = kwargs["use_generator"]
     img_dim = kwargs["img_dim"]
     
-    epoch_size = n_batch_per_epoch * batch_size * 5
+    epoch_size = n_batch_per_epoch * batch_size
     lr_init = 2E-4
 
     # Setup environment (logging directory etc)
@@ -52,8 +52,8 @@ def train(**kwargs):
     # Load and rescale data
     if not use_generator:
         try:
-            X_full_train = np.load(os.path.join(dset, 'training_T1.npy'))
-            X_sketch_train = np.load(os.path.join(dset, 'training_FLAIR.npy'))
+            X_full_train = np.load(os.path.join(dset, 'training_ref_tot.npy'))
+            X_sketch_train = np.load(os.path.join(dset, 'training_target_tot.npy'))
         except:
             X_full_train, X_sketch_train, _ = data_utils.load_data_3D(dset, 'train', extract_edges=False)
             np.save(os.path.join(dset, 'training_ref_tot.npy'), X_full_train)
@@ -230,7 +230,7 @@ def launch_training(**kwargs):
 d_params = {"dset": "/data/brats_data/",#"/mnt/sdb/data_T1_to_FLAIR_normalized_new/", #
             "generator": 'upsampling',
             "batch_size": 2,
-            "n_batch_per_epoch": 100,
+            "n_batch_per_epoch": 1000,
             "nb_epoch": 201,
             "model_name": "3D_lf=0_ps=32_bs=2_no_sobel_new_models_e=400",
             "epoch": 10,
