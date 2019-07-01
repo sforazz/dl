@@ -69,7 +69,7 @@ def train(**kwargs):
             img_dim = img_dim
             print('Found {} parts of data'.format(len(data_full)))
             epoch_size = n_batch_per_epoch * batch_size * len(data_full)
-            img_dim_disc = (img_dim[0], img_dim[1], img_dim[2], 1)
+            img_dim_disc = (img_dim[0], img_dim[1], img_dim[2], 2)
             nb_patch, img_dim_disc = data_utils.get_nb_patch_3D(img_dim_disc, patch_size, image_data_format)
         except:
             raise Exception('If you use data generator you must specify the image dimensions (for example, (128, 128, 128, 1)).')
@@ -103,7 +103,7 @@ def train(**kwargs):
 #         generator_model.load_weights('/data/logs_gan/models/3D_lf=0_ps=32_bs=2_no_sobel_2channels_ds/gen_weights_epoch200.h5')
         discriminator_model.trainable = False
 
-        DCGAN_model = models.DCGAN_3D_no_sobel(generator_model,
+        DCGAN_model = models.DCGAN_3D_no_sobel_2(generator_model,
                                                discriminator_model,
                                                img_dim,
                                                patch_size,
@@ -227,12 +227,12 @@ def launch_training(**kwargs):
     train(**kwargs)
 
 
-d_params = {"dset": "/data/brats_data/",#"/mnt/sdb/data_T1_to_FLAIR_normalized_new/", #
+d_params = {"dset": "/mnt/sdb/data_T1_to_FLAIR_normalized_new/", #"/data/brats_data/",#
             "generator": 'upsampling',
             "batch_size": 2,
-            "n_batch_per_epoch": 1000,
+            "n_batch_per_epoch": 400,
             "nb_epoch": 201,
-            "model_name": "3D_lf=0_ps=32_bs=2_no_sobel_new_models_e=400",
+            "model_name": "3D_lf=0_ps=32_bs=2_no_sobel_2channels_disc_e=200",
             "epoch": 10,
             "nb_classes": 1,
             "do_plot": False,
@@ -243,7 +243,7 @@ d_params = {"dset": "/data/brats_data/",#"/mnt/sdb/data_T1_to_FLAIR_normalized_n
             "label_flipping": 0,
             "patch_size": (32, 32, 32),
             "use_mbd": False,
-            "logging_dir": "/data/logs_brats/", #'/mnt/sdb/logs_gan/',  #
+            "logging_dir": '/mnt/sdb/logs_gan/',  #"/data/logs_brats/", #
             "use_generator": False
             }
 

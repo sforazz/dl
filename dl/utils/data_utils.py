@@ -3,6 +3,7 @@ import os
 import numpy as np
 import cv2
 from skimage.transform import resize
+import glob
 from dl.utils.utilities import sobel_3D, sobel_2D
 
 
@@ -163,17 +164,17 @@ def load_data(data_dir, data_type, image_data_format, img_width=256, img_height=
         return final_facade_photos, final_facade_labels
 
 
-def load_data_3D(data_dir, data_type, image_data_format, bias_corr=False, img_width=128, img_height=128, img_depth=128, mb=[3, 3, 2], bs=None,
+def load_data_3D(data_dir, data_type, bias_corr=False, img_width=128, img_height=128, img_depth=128, mb=[2, 2, 2], bs=None,
                  init=None, extract_edges=True):
 
         # Get all .h5 files containing training images
     if bias_corr:
         data_dir = os.path.join(data_dir, 'bias_corr')
-    facade_photos_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'A')))
-    facade_labels_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'B')))
+#     facade_photos_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'A')))
+#     facade_labels_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'B')))
     if bs is not None and init is not None:
-        facade_photos_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'A')))[init:bs]
-        facade_labels_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'B')))[init:bs]
+        facade_photos_h5 = sorted(glob.glob(os.path.join(data_dir, '*/*T1c.*/*.nii.gz')))[init:bs]
+        facade_labels_h5 = sorted(glob.glob(os.path.join(data_dir, '*/*Flair.*/*.nii.gz')))[init:bs]
     elif bs is not None and init is None:
         idx = np.random.choice(len(facade_photos_h5), bs, replace=False)
         facade_photos_h5 = [facade_photos_h5[x] for x in idx]
@@ -182,9 +183,9 @@ def load_data_3D(data_dir, data_type, image_data_format, bias_corr=False, img_wi
         facade_photos_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'A')))
         facade_labels_h5 = sorted(os.listdir(os.path.join(data_dir, data_type+'B')))
 #     facade_labels_h5 = [f for f in os.listdir(os.path.join(data_dir_path, 'facades')) if '.h5' in f]
-    dx = 320
-    dy = 320
-    dz = 168
+    dx = 240
+    dy = 240
+    dz = 155
 
     final_facade_photos = None
     final_facade_labels = None
@@ -218,16 +219,18 @@ def load_data_3D(data_dir, data_type, image_data_format, bias_corr=False, img_wi
     results_dict = {}
     for index in range(len(facade_photos_h5)):
         results_dict[index] = {}
-        facade_photos_path = os.path.join(data_dir, data_type+'A/') + facade_photos_h5[index]
-        facade_labels_path = os.path.join(data_dir, data_type+'B/') + facade_labels_h5[index]
+        facade_photos_path = facade_photos_h5[index]
+        facade_labels_path = facade_labels_h5[index]
 #         facade_labels_path = data_dir_path + '/facades/' + facade_labels_h5[index]
         facade_photos_orig = nib.load(facade_photos_path).get_data()
-        facade_photos_orig = resize(facade_photos_orig, (dx, dy, dz), order=3, mode='edge', cval=0,
-                                    anti_aliasing=False)
+        if facade_photos_orig.shape != (240,240,155):
+            raise Exception('different size')
+#         facade_photos_orig = resize(facade_photos_orig, (dx, dy, dz), order=3, mode='edge', cval=0,
+#                                     anti_aliasing=False)
 
         facade_labels_orig = nib.load(facade_labels_path).get_data()
-        facade_labels_orig = resize(facade_labels_orig, (dx, dy, dz), order=3, mode='edge', cval=0,
-                                    anti_aliasing=False)
+#         facade_labels_orig = resize(facade_labels_orig, (dx, dy, dz), order=3, mode='edge', cval=0,
+#                                     anti_aliasing=False)
         
         facades_photo = [facade_photos_orig[i[0]:i[1], j[0]:j[1], z[0]:z[1]] for z in indZ for j in indY for i in indX]
         facades_label = [facade_labels_orig[i[0]:i[1], j[0]:j[1], z[0]:z[1]] for z in indZ for j in indY for i in indX]
@@ -305,15 +308,20 @@ def load_data_prediction(data_dir, img_width=256, img_height=256):
     return final_facade_photos
 
 
-def load_data_prediction_3D(data_dir, img_width=128, img_height=128, img_depth=128, mb=[3, 3, 2]):
+def load_data_prediction_3D(data_dir, img_width=128, img_height=128, img_depth=128, mb=[2, 2, 2]):
 
         # Get all .h5 files containing training images
     facade_photos_h5 = sorted(os.listdir(os.path.join(data_dir)))
 
 #     facade_labels_h5 = [f for f in os.listdir(os.path.join(data_dir_path, 'facades')) if '.h5' in f]
-    dx = 320
-    dy = 320
-    dz = 168
+
+#    dx = 320
+#    dy = 320
+#    dz = 168
+
+    dx = 240
+    dy = 240
+    dz = 155
 
     final_facade_photos = None
     
@@ -394,8 +402,8 @@ def get_disc_batch(X_full_batch, X_sketch_batch, generator_model, batch_counter,
         elif X_full_edge is not None and mode == '2D':
             X_gen_edge = sobel_2D(X_disc)
             X_disc = np.concatenate([X_full_batch, X_disc, X_gen_edge], axis=-1)
-#         else:
-#             X_disc = np.concatenate([X_disc], axis=-1)
+        else:
+            X_disc = np.concatenate([X_full_batch, X_disc], axis=-1)
         y_disc = np.zeros((X_disc.shape[0], 2), dtype=np.float16)
         if label_smoothing:
             y_disc[:, 1] = np.random.uniform(low=0, high=0.3, size=y_disc.shape[0])
@@ -412,8 +420,8 @@ def get_disc_batch(X_full_batch, X_sketch_batch, generator_model, batch_counter,
         if X_full_edge is not None:
             X_disc = np.concatenate([X_full_batch, X_sketch_batch, X_full_edge], axis=-1)
         else:
-#             X_disc = np.concatenate([X_full_batch, X_sketch_batch], axis=-1)
-            X_disc = X_full_batch
+            X_disc = np.concatenate([X_full_batch, X_sketch_batch], axis=-1)
+#             X_disc = X_full_batch
         y_disc = np.zeros((X_disc.shape[0], 2), dtype=np.float16)
         if label_smoothing:
             y_disc[:, 1] = np.random.uniform(low=0.7, high=1.2, size=y_disc.shape[0])
@@ -486,7 +494,7 @@ def save_prediction_3D(generated_images, dict_val):
         im_shape = dict_val[n]['im_size']
         indexes = dict_val[n]['indexes']
         image = generated_images[n*batches:(n+1)*batches, :]
-        final_image = np.zeros((im_shape[0], im_shape[1], im_shape[2], generated_images.shape[0]//n_images))-2
+        final_image = np.zeros((im_shape[0], im_shape[1], im_shape[2], generated_images.shape[0]//n_images), dtype=np.float16)-2
         k = 0
         for z in indexes[2]:
             for j in indexes[1]:
@@ -496,8 +504,8 @@ def save_prediction_3D(generated_images, dict_val):
         final_image[final_image==-2] = np.nan
         final_image = np.nanmean(final_image, axis=3)
         original_dim = dict_val[n]['orig_dim']
-        final_image = resize(final_image, (original_dim[0], original_dim[1], original_dim[2]), order=3, mode='edge', cval=0,
+        final_image = resize(final_image.astype(np.float32), (original_dim[0], original_dim[1], original_dim[2]), order=3, mode='edge', cval=0,
                                     anti_aliasing=False)
-        final_image = inverse_normalize_array_max(final_image, dict_val[n]['max_photos'])
+        final_image = inverse_normalize_array_max(final_image.astype(np.float32), dict_val[n]['max_photos'])
         im2save = nib.Nifti1Image(final_image, affine=dict_val[n]['orig_affine'])
         nib.save(im2save, dict_val[n]['name'])
