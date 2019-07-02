@@ -12,13 +12,14 @@ import matplotlib.pyplot as plt
 
 from keras import callbacks as cbks
 
-base_dir = '/mnt/sdb/BRATS2015_Training/HGG/single_patch_data/'
+# base_dir = '/mnt/sdb/BRATS2015_Training/HGG/single_patch_data/'
+base_dir = '/data/data_segmentation/'
 #os.chdir('/home/fsforazz/git/Unet-ants/code')
 
 # local imports
-from dl.sampling import DataLoader, CSVDataset
-# from dl.sampling.dataloader import DataLoader
-# from dl.sampling.datasets import CSVDataset
+# from dl.sampling import DataLoader, CSVDataset
+from dl.sampling.dataloader import DataLoader
+from dl.sampling.datasets import CSVDataset
 from dl.sampling import transforms as tx
 from dl.models.unet import create_unet_model3D, unet_model_3d
 
@@ -41,11 +42,12 @@ target_tx = tx.Compose([tx.LambdaTransform(fn),
 # target_tx = tx.LambdaTransform(fn)
 # use a co-transform, meaning the same transform will be applied to input+target images at the same time 
 # this is necessary since Affine transforms have random parameter draws which need to be shared
-dataset = CSVDataset(filepath=data_dir+'image_filemap.csv', # this path will be appended to all of the filenames in the csv file
-                    input_cols=['Images'], # column in dataframe corresponding to inputs (can be an integer also)
-                    target_cols=['Segmentations'],
-                    target_transform=target_tx,
-                    input_transform=input_tx) # run co transforms before input/target transforms
+dataset = CSVDataset(filepath=data_dir+'image_filemap.csv',
+                     base_path='/data/data_segmentation/', # this path will be appended to all of the filenames in the csv file
+                     input_cols=['Images'], # column in dataframe corresponding to inputs (can be an integer also)
+                     target_cols=['Segmentations'],
+                     target_transform=target_tx,
+                     input_transform=input_tx) # run co transforms before input/target transforms
 
 
 # split into train and test set based on the `train-test` column in the csv file
@@ -53,7 +55,7 @@ dataset = CSVDataset(filepath=data_dir+'image_filemap.csv', # this path will be 
 val_data, train_data = dataset.split_by_column('TrainTest')
 
 # create a dataloader .. this is basically a keras DataGenerator -> can be fed to `fit_generator`
-batch_size = 1
+batch_size = 10
 train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 val_loader = DataLoader(val_data, batch_size=batch_size, shuffle=True)
 
