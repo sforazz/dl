@@ -122,9 +122,10 @@ class OneHot(object):
         """
         Assumes channel dim is last dimension
         """
-        xshape = list(X.shape[:-1])
-        xx = to_categorical(X)
+        xshape = list(X.swapaxes(0, -1).shape[:-1])
+        xx = to_categorical(X.swapaxes(0, -1))
         xx = xx.reshape(xshape+[xx.shape[-1]])
+        xx = xx.swapaxes(0, -1)
         return xx
 
 
