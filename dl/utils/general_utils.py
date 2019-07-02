@@ -1,5 +1,7 @@
 import os
 import tensorflow as tf
+from scipy import ndimage
+import numpy as np
 
 
 def remove_files(files):
@@ -55,3 +57,34 @@ def write_log(callback, name, loss, batch_no):
     callback.writer.add_summary(summary, batch_no)
     callback.writer.flush()
 
+
+def normalize_array_max(array):
+    max_value = max(array.flatten())
+    if max_value > 0:
+        array = array / max_value
+        array = (array - 0.5)*2
+    return array, max_value
+
+
+def sobel_3D(image):
+    
+    if len(image.shape) > 3:
+        sob = np.zeros((list(image.shape[:-1])+[3]), dtype=np.float16)
+        for i in range(image.shape[0]):
+            sx = ndimage.sobel(image[i, :, :, :, 0], axis=0, mode='constant')
+            sy = ndimage.sobel(image[i, :, :, :, 0], axis=1, mode='constant')
+            sz = ndimage.sobel(image[i, :, :, :, 0], axis=2, mode='constant')
+            sx = sx.reshape((image.shape[1], image.shape[2], image.shape[3], 1))
+            sy = sy.reshape((image.shape[1], image.shape[2], image.shape[3], 1))
+            sz = sz.reshape((image.shape[1], image.shape[2], image.shape[3], 1))
+            concat = np.concatenate([sx, sy, sz], axis=-1)
+            sob[i, :, :, :, :] = concat
+    else:         
+        sx = ndimage.sobel(image, axis=0, mode='constant')
+        sy = ndimage.sobel(image, axis=1, mode='constant')
+        sz = ndimage.sobel(image, axis=2, mode='constant')
+        sx = sx.reshape((image.shape[0], image.shape[1], image.shape[2], 1))
+        sy = sy.reshape((image.shape[0], image.shape[1], image.shape[2], 1))
+        sz = sz.reshape((image.shape[0], image.shape[1], image.shape[2], 1))
+        sob = np.concatenate([sx, sy, sz], axis=-1)
+    return sob
