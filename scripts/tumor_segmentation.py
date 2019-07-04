@@ -43,7 +43,7 @@ target_tx = tx.Compose([tx.LambdaTransform(fn),
 # use a co-transform, meaning the same transform will be applied to input+target images at the same time 
 # this is necessary since Affine transforms have random parameter draws which need to be shared
 dataset = CSVDataset(filepath=data_dir+'image_filemap.csv',
-                     base_path='/data/data_segmentation/', # this path will be appended to all of the filenames in the csv file
+                     base_path='/data/data_segmentation/new_data/', # this path will be appended to all of the filenames in the csv file
                      input_cols=['Images'], # column in dataframe corresponding to inputs (can be an integer also)
                      target_cols=['Segmentations'])
 
@@ -67,7 +67,7 @@ val_loader = DataLoader(val_data, batch_size=batch_size, shuffle=True)
 # write an example batch to a folder as JPEG
 #train_loader.write_a_batch(data_dir+'example_batch/')
 
-n_labels = train_data[0][1].shape[0]
+n_labels = train_data[0][1].shape[-1]
 # create model
 model = create_unet_model3D(input_image_size=train_data[0][0].shape, n_labels=n_labels, layers=4,
                             mode='classification')
