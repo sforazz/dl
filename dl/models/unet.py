@@ -15,7 +15,7 @@ def dice_coefficient(y_true, y_pred):
 def loss_dice_coefficient_error(y_true, y_pred):
     return -dice_coefficient(y_true, y_pred)
 
-K.set_image_data_format("channels_first")
+# K.set_image_data_format("channels_last")
 
 try:
     from keras.engine import merge
@@ -45,6 +45,7 @@ def unet_model_3d(input_shape, pool_size=(2, 2, 2), n_labels=1, initial_learning
     increases the amount memory required during training.
     :return: Untrained 3D UNet Model
     """
+    K.set_image_data_format("channels_first")
     inputs = Input(input_shape)
     current_layer = inputs
     levels = list()
@@ -301,6 +302,7 @@ def create_unet_model3D(input_image_size,
     -------
     unet_model = create_unet_model3D( (128,128,128,1), 1, 4)
     """
+    K.set_image_data_format("channels_last")
     layers = np.arange(layers)
     number_of_classification_labels = n_labels
     
