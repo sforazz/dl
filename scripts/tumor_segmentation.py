@@ -45,9 +45,14 @@ target_tx = tx.Compose([tx.LambdaTransform(fn),
 dataset = CSVDataset(filepath=data_dir+'image_filemap.csv',
                      base_path='/data/data_segmentation/', # this path will be appended to all of the filenames in the csv file
                      input_cols=['Images'], # column in dataframe corresponding to inputs (can be an integer also)
-                     target_cols=['Segmentations'],
-                     target_transform=target_tx,
-                     input_transform=input_tx) # run co transforms before input/target transforms
+                     target_cols=['Segmentations'])
+
+# dataset = CSVDataset(filepath=data_dir+'image_filemap.csv',
+#                      base_path='/data/data_segmentation/', # this path will be appended to all of the filenames in the csv file
+#                      input_cols=['Images'], # column in dataframe corresponding to inputs (can be an integer also)
+#                      target_cols=['Segmentations'],
+#                      target_transform=target_tx,
+#                      input_transform=input_tx) # run co transforms before input/target transforms
 
 
 # split into train and test set based on the `train-test` column in the csv file
@@ -64,9 +69,9 @@ val_loader = DataLoader(val_data, batch_size=batch_size, shuffle=True)
 
 n_labels = train_data[0][1].shape[0]
 # create model
-# model = create_unet_model3D(input_image_size=train_data[0][0].shape, n_labels=n_labels, layers=4,
-#                             mode='classification')
-model = unet_model_3d(train_data[0][0].shape)
+model = create_unet_model3D(input_image_size=train_data[0][0].shape, n_labels=n_labels, layers=4,
+                            mode='classification')
+# model = unet_model_3d(train_data[0][0].shape)
 
 callbacks = [cbks.ModelCheckpoint(results_dir+'segmentation-weights.h5', monitor='val_loss', save_best_only=True),
             cbks.ReduceLROnPlateau(monitor='val_loss', factor=0.1)]
@@ -85,6 +90,3 @@ model.fit_generator(generator=iter(train_loader), steps_per_epoch=np.ceil(len(tr
 #val_x, val_y = val_data.load()
 #real_val_x, real_val_y = val_data.load()
 #real_val_y_pred = model.predict(real_val_x)
-
-
-
