@@ -88,3 +88,23 @@ def sobel_3D(image):
         sz = sz.reshape((image.shape[0], image.shape[1], image.shape[2], 1))
         sob = np.concatenate([sx, sy, sz], axis=-1)
     return sob
+
+
+def sobel_2D(image):
+    
+    if len(image.shape) > 2:
+        sob = np.zeros((list(image.shape[:-1])+[2]))
+        for i in range(image.shape[0]):
+            sx = ndimage.sobel(image[i, :, :, 0], axis=0, mode='constant')
+            sy = ndimage.sobel(image[i, :, :, 0], axis=1, mode='constant')
+            sx = sx.reshape((image.shape[1], image.shape[2], 1))
+            sy = sy.reshape((image.shape[1], image.shape[2], 1))
+            concat = np.concatenate([sx, sy], axis=-1)
+            sob[i, :, :, :] = concat
+    else:         
+        sx = ndimage.sobel(image, axis=0, mode='constant')
+        sy = ndimage.sobel(image, axis=1, mode='constant')
+        sx = sx.reshape((image.shape[0], image.shape[1], 1))
+        sy = sy.reshape((image.shape[0], image.shape[1], 1))
+        sob = np.concatenate([sx, sy], axis=-1)
+    return sob

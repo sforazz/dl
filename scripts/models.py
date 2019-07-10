@@ -505,9 +505,6 @@ def DCGAN_3D(generator, discriminator_model, img_dim, patch_size, image_dim_orde
     generated_image = generator(gen_input)
 
     generated_edge = Lambda(lambda inputs: sobel_edges_3D(inputs))(generated_image)
-#     generated_image = sobel_edges(generated_image)
-#     generated_edge = generated_edge.reshape((img_dim[0], img_dim[1], img_dim[2], 1))
-#     generated_image = np.concatenate((generated_image, generated_edge))
 
     if image_dim_ordering == "channels_first":
         h, w, d = img_dim[1:]

@@ -7,6 +7,7 @@ from keras.optimizers import Adam
 import keras.backend as K
 import dl.utils.general_utils as general_utils
 import dl.utils.data_utils as data_utils
+from dl.generators import get_disc_batch
 from keras.callbacks import TensorBoard
 import random
 from dl.losses.sobel import sobelLoss3D
@@ -56,9 +57,7 @@ def train(**kwargs):
             X_full_train = np.load(os.path.join(dset, 'training_T1.npy'))
             X_sketch_train = np.load(os.path.join(dset, 'training_FLAIR.npy'))
         except:
-            X_full_train, X_sketch_train, X_edge_full, X_edge_sketch, _ = data_utils.load_data_3D(dset, 'train', image_data_format)
-            np.save(os.path.join(dset, 'training_T1_edge_bc_part7.npy'), X_edge_full)
-            np.save(os.path.join(dset, 'training_FLAIR_edge_bc_part7.npy'), X_edge_sketch)
+            X_full_train, X_sketch_train, _, _, _ = data_utils.load_data_3D(dset, 'train', image_data_format)
             np.save(os.path.join(dset, 'training_T1_bc_part7.npy'), X_full_train)
             np.save(os.path.join(dset, 'training_FLAIR_bc_part7.npy'), X_sketch_train)
         try:
@@ -75,12 +74,12 @@ def train(**kwargs):
         nb_patch, img_dim_disc = data_utils.get_nb_patch_3D(img_dim_disc, patch_size, image_data_format)
     else:
         try:
-            data_full = sorted([x for x in os.listdir(dset) if x.endswith('.npy') and 'T1' in x and 'edge' not in x])
-            data_sketch = sorted([x for x in os.listdir(dset) if x.endswith('.npy') and 'FLAIR' in x and 'edge' not in x])
-            edge_full = sorted([x for x in os.listdir(os.path.join(dset, 'edge_data'))
-                                if x.endswith('.npy') and 'T1' in x and 'edge' in x])
-            edge_sketch = sorted([x for x in os.listdir(os.path.join(dset, 'edge_data'))
-                                  if x.endswith('.npy') and 'FLAIR' in x and 'edge' in x])
+            data_full = sorted([x for x in os.listdir(dset) if x.endswith('.npy') and 'T1c' in x and 'edge' not in x])
+            data_sketch = sorted([x for x in os.listdir(dset) if x.endswith('.npy') and 'Flair' in x and 'edge' not in x])
+#             edge_full = sorted([x for x in os.listdir(os.path.join(dset, 'edge_data'))
+#                                 if x.endswith('.npy') and 'T1' in x and 'edge' in x])
+#             edge_sketch = sorted([x for x in os.listdir(os.path.join(dset, 'edge_data'))
+#                                   if x.endswith('.npy') and 'FLAIR' in x and 'edge' in x])
             img_dim = img_dim
             print('Found {} parts of data'.format(len(data_full)))
             epoch_size = n_batch_per_epoch * batch_size * len(data_full)
@@ -147,10 +146,10 @@ def train(**kwargs):
 #         init = 0
         for e in range(nb_epoch):
             if use_generator:
-                data = list(zip(data_full, data_sketch, edge_full, edge_sketch))
+                data = list(zip(data_full, data_sketch))
                 random.shuffle(data)
             else:
-                data = [[X_full_train, X_sketch_train, X_edge_full, X_edge_sketch]]
+                data = [[X_full_train, X_sketch_train]]
 
             # Initialize progbar and batch counter
             progbar = generic_utils.Progbar(epoch_size)
@@ -176,42 +175,40 @@ def train(**kwargs):
                 print('DCGAN LR: {}'.format(K.get_value(DCGAN_model.optimizer.lr)))
                 print('Discriminator LR: {}'.format(K.get_value(discriminator_model.optimizer.lr)))
 
-            for f, s, ef, es in data:
+            for f, s in data:
                 if use_generator:
                     X_full_train = np.load(os.path.join(dset, f))
-                    X_sketch_train = np.load(os.path.join(dset, s))
-                    X_edge_full = np.load(os.path.join(dset, 'edge_data', ef))
-                    X_edge_sketch = np.load(os.path.join(dset, 'edge_data', es))
+                    X_sketch_train = np.load(os.path.join(dset, s))[:, :, :, :, 0]
+                    X_sketch_train = X_sketch_train.reshape([-1, 128, 128, 128, 1])
+#                     X_full_train = X_full_train.reshape([-1, 32, 32, 32, 1])
                 else:
                     X_full_train = f
                     X_sketch_train = s
-                    X_edge_full = ef
-                    X_edge_sketch = es
+#                 X_full_train = X_full_train[:, :, :, :, 0]
+#                 X_sketch_train = X_sketch_train[:, :, :, :, 0]
                 batch_counter = 1
-                for X_full_batch, X_sketch_batch, X_edge_full_bt, _ in data_utils.gen_batch(X_full_train, X_sketch_train, batch_size, X3=X_edge_full, X4=X_edge_sketch):
+                for X_full_batch, X_sketch_batch in data_utils.gen_batch(X_full_train, X_sketch_train, batch_size):
     
                     # Create a batch to feed the discriminator model
-                    X_disc, y_disc = data_utils.get_disc_batch(X_full_batch,
-                                                               X_sketch_batch,
-                                                               generator_model,
-                                                               batch_counter,
-                                                               patch_size,
-                                                               image_data_format,
-                                                               X_full_edge=X_edge_full_bt,
-                                                               label_smoothing=label_smoothing,
-                                                               label_flipping=label_flipping,
-                                                               mode='3D')
+                    X_disc, y_disc = get_disc_batch(X_full_batch,
+                                                   X_sketch_batch,
+                                                   generator_model,
+                                                   batch_counter,
+                                                   patch_size,
+                                                   image_data_format,
+                                                   use_edge=True,
+                                                   label_smoothing=label_smoothing,
+                                                   label_flipping=label_flipping,
+                                                   mode='3D')
     
                     # Update the discriminator
-    #                 if z == 1 or init:
-    #                     disc_loss = discriminator_model.train_on_batch(X_disc, y_disc)
-    #                     z = 0
-    #                     init = False
-    #                 else:
-    #                     z += 1
+
                     disc_loss = discriminator_model.train_on_batch(X_disc, y_disc)
                     # Create a batch to feed the generator model
-                    X_gen, X_gen_target, _, X_edge_target = next(data_utils.gen_batch(X_full_train, X_sketch_train, batch_size, X3=X_edge_full, X4=X_edge_sketch))
+                    X_gen, X_gen_target = next(
+                        data_utils.gen_batch(
+                            X_full_train[:, :, :, :, 0].reshape([-1, 128, 128, 128, 1]), X_sketch_train,
+                            batch_size))
 
                     y_gen = np.zeros((X_gen.shape[0], 2), dtype=np.uint8)
                     y_gen[:, 1] = 1
@@ -257,7 +254,7 @@ def launch_training(**kwargs):
     train(**kwargs)
 
 
-d_params = {"dset": "/data_large/gan_data_bc_T1/",#"/mnt/sdb/data_T1_to_FLAIR_normalized_new/", #
+d_params = {"dset": "/data/brats/edge_data/",#"/mnt/sdb/data_T1_to_FLAIR_normalized_new/", #
             "generator": 'upsampling',
             "batch_size": 2,
             "n_batch_per_epoch": 100,
@@ -273,7 +270,7 @@ d_params = {"dset": "/data_large/gan_data_bc_T1/",#"/mnt/sdb/data_T1_to_FLAIR_no
             "label_flipping": 0.1,
             "patch_size": (32, 32, 32),
             "use_mbd": True,
-            "logging_dir": "/data_large/logs_gan_T1/", #'/mnt/sdb/logs_gan/', # 
+            "logging_dir": "/data/logs_gan_brats_edge/", #'/mnt/sdb/logs_gan/', # 
             "use_generator": True
             }
 
