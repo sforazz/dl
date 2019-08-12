@@ -35,7 +35,7 @@ def install_deps():
 
 pkgs, new_links = install_deps()
 
-setup(name='deep_learning',
+setup(name='dl',
       version='1.0',
       description='Deep learning utilities',
       url='https://github.com/sforazz/dl.git',
