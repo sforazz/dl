@@ -27,7 +27,7 @@ def install_deps():
     for resource in default:
         if 'git+https' in resource:
             pkg = resource.split('#')[-1]
-            links.append(resource.strip() + '-9876543210')
+            links.append(resource.strip())
             new_pkgs.append(pkg.replace('egg=', '').rstrip())
         else:
             new_pkgs.append(resource.strip())
@@ -46,6 +46,7 @@ setup(name='dl',
       zip_safe=False,
       install_requires=pkgs,
       dependency_links=new_links,
+      packages=find_packages(exclude=['*.tests', '*.tests.*', 'tests.*', 'tests'])
       classifiers=[
           'Intended Audience :: Science/Research',
           'Programming Language :: Python',
