@@ -5,8 +5,9 @@ from .utils.mouse_segmentation import preprocessing
 import nibabel as nib
 import os
 import glob
-from dl.utils.general_utils import normalize_array_max, sobel_3D, sobel_2D
+from dl.utils.general_utils import normalize_array_max, sobel_3D, sobel_2D, normalize_min_max
 from skimage.transform import resize
+from array import array
 
 
 def data_generator(x_train, y_train, batch_size, seed=42):
@@ -81,10 +82,19 @@ def load_data_3D(data_dir, data_type, mb=[], bs=None, init=None, extract_edges=T
     img_height = patch_size[1]
     img_depth = patch_size[2]
 
-    if not mb:
-        mb.append((img_size[0]//patch_size[0])+1)
-        mb.append((img_size[1]//patch_size[1])+1)
-        mb.append((img_size[2]//patch_size[2])+1)
+    if len(mb) < 3:
+        mb.append((img_size[0]//img_width)+1)
+    if dx < img_width:
+        img_width = dx
+    if len(mb) < 3:
+        mb.append((img_size[1]//img_height)+1)
+    if dy < img_height:
+        img_height = dy
+    if len(mb) < 3:
+        mb.append((img_size[2]//img_depth)+1)
+    if dz <= img_depth:
+        img_depth = dz
+        mb[-1] = 1  
 
     final_facade_photos = None
     final_photo_edges = None
@@ -93,22 +103,30 @@ def load_data_3D(data_dir, data_type, mb=[], bs=None, init=None, extract_edges=T
     diffY = dy - img_height
     diffZ = dz - img_depth
 
-    while True:
-        if diffX % (mb[0]-1) != 0:
-            diffX += 1
-            dx += 1
-        elif diffY % (mb[1]-1) != 0:
-            diffY += 1
-            dy += 1
-        elif diffZ % (mb[2]-1) != 0:
-            diffZ += 1
-            dz += 1
-        else:
-            break
-
-    overlapX = diffX//(mb[0]-1)
-    overlapY = diffY//(mb[1]-1)
-    overlapZ = diffZ//(mb[2]-1)
+#     while True:
+#         if diffX % (mb[0]-1) != 0:
+#             diffX += 1
+#             dx += 1
+#         elif diffY % (mb[1]-1) != 0:
+#             diffY += 1
+#             dy += 1
+#         elif diffZ % (mb[2]-1) != 0:
+#             diffZ += 1
+#             dz += 1
+#         else:
+#             break
+    try:
+        overlapX = diffX//(mb[0]-1)
+    except ZeroDivisionError:
+        overlapX = dx
+    try:
+        overlapY = diffY//(mb[1]-1)
+    except ZeroDivisionError:
+        overlapY = dy
+    try:
+        overlapZ = diffZ//(mb[2]-1)
+    except ZeroDivisionError:
+        overlapZ = dz
     indX = [[x, x+img_width] for x in np.arange(0, dx, overlapX) if x+img_width<=dx]
     indY = [[x, x+img_height] for x in np.arange(0, dy, overlapY) if x+img_height<=dy]
     indZ = [[x, x+img_depth] for x in np.arange(0, dz, overlapZ) if x+img_depth<=dz]
@@ -117,8 +135,8 @@ def load_data_3D(data_dir, data_type, mb=[], bs=None, init=None, extract_edges=T
 
         facade_photos_path = facade_photos_h5[index]
         facade_photos_orig = nib.load(facade_photos_path).get_data()
+        original_size = facade_photos_orig.shape
         if facade_photos_orig.shape != img_size:
-            original_size = facade_photos_orig.shape
             facade_photos_orig = resize(facade_photos_orig, (dx, dy, dz), order=3, mode='edge', cval=0,
                                         anti_aliasing=False)
         
@@ -162,6 +180,98 @@ def load_data_3D(data_dir, data_type, mb=[], bs=None, init=None, extract_edges=T
 
     if prediction:
         return final_facade_photos, results_dict
+    else:
+        return final_facade_photos
+
+
+def load_data_2D(data_dir, data_type, data_list=[], array=None, mb=[], bs=None, init=None, extract_edges=True, prediction=False,
+                 img_size=(192, 192), patch_size=(96, 96), binarize=False, normalize=True):
+    if array is not None:
+        facade_photos_h5 = [1]
+    else:
+        if data_list:
+            facade_photos_h5 = data_list
+        elif bs is not None and init is not None:
+            facade_photos_h5 = sorted(glob.glob(os.path.join(data_dir, data_type)))[init:bs]
+        else:
+            facade_photos_h5 = sorted(glob.glob(os.path.join(data_dir, data_type)))
+
+    dx = img_size[0]
+    dy = img_size[1]
+    
+    img_width = patch_size[0]
+    img_height = patch_size[1]
+
+    if not mb:
+        if img_size[0] % patch_size[0] == 0:
+            mb.append((img_size[0]//patch_size[0]))
+        else:
+            mb.append((img_size[0]//patch_size[0])+1)
+        if img_size[1] % patch_size[1] == 0:
+            mb.append((img_size[1]//patch_size[1]))
+        else:
+            mb.append((img_size[1]//patch_size[1])+1)
+
+    final_facade_photos = None
+    final_photo_edges = None
+    
+    diffX = dx - img_width
+    diffY = dy - img_height
+
+    overlapX = diffX//(mb[0]-1)
+    overlapY = diffY//(mb[1]-1)
+    indX = [[x, x+img_width] for x in np.arange(0, dx, overlapX) if x+img_width<=dx]
+    indY = [[x, x+img_height] for x in np.arange(0, dy, overlapY) if x+img_height<=dy]
+
+    for index in range(len(facade_photos_h5)):
+
+        if array is not None:
+            facade_photos_orig = array
+        else:
+            facade_photos_path = facade_photos_h5[index]
+            facade_photos_orig = nib.load(facade_photos_path).get_data()
+        original_size = facade_photos_orig.shape
+        if facade_photos_orig.shape != img_size:
+            facade_photos_orig = resize(facade_photos_orig, (dx, dy), order=3, mode='edge', cval=0,
+                                        anti_aliasing=False)
+        
+        facade_photos = [facade_photos_orig[i[0]:i[1], j[0]:j[1]] for j in indY for i in indX]
+        facade_photos = np.asarray(facade_photos, dtype=np.float16)
+        if normalize:
+            facade_photos = normalize_min_max(facade_photos)
+        if binarize:
+            facade_photos[facade_photos != 0] = 1
+        
+
+        all_facades_photos = facade_photos.reshape((-1, img_width, img_height, 1))
+
+        if final_facade_photos is not None:
+                    final_facade_photos = np.concatenate([final_facade_photos, all_facades_photos], axis=0)
+        else:
+                    final_facade_photos = all_facades_photos
+        
+        results_dict = {}
+        if prediction:
+            results_dict[index] = {}
+            results_dict[index]['orig_dim'] = original_size
+            results_dict[index]['indexes'] = [indX, indY]
+            results_dict[index]['im_size'] = [dx, dy]
+
+        if extract_edges:
+            facade_photos_edge = sobel_3D(facade_photos_orig)
+            facades_photo_edge = [facade_photos_edge[i[0]:i[1], j[0]:j[1]] for j in indY for i in indX]
+            photo_edges = np.asarray(facades_photo_edge, dtype=np.float16)
+            all_photo_edges = photo_edges.reshape((-1, img_width, img_height, 3))
+            if final_photo_edges is not None:
+                final_photo_edges = np.concatenate([final_photo_edges, all_photo_edges], axis=0)
+            else:
+                final_photo_edges = all_photo_edges
+
+    if final_photo_edges is not None:
+        final_facade_photos = np.concatenate([final_facade_photos, final_photo_edges], axis=-1)
+
+    if prediction:
+        return final_facade_photos, results_dict, final_facade_photos.shape[0]
     else:
         return final_facade_photos
 

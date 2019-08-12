@@ -5,10 +5,15 @@ import cv2
 from skimage.transform import resize
 import glob
 from dl.utils.utilities import sobel_3D, sobel_2D
+from basecore.process.postprocess import binarization
 
 
 def normalize_array_max(array):
     max_value = max(array.flatten())
+    min_value = min(array.flatten())
+    if min_value < 0:
+        array = array + np.abs(min_value)
+        max_value = max(array.flatten())
     if max_value > 0:
         array = array / max_value
         array = (array - 0.5)*2
@@ -308,20 +313,20 @@ def load_data_prediction(data_dir, img_width=256, img_height=256):
     return final_facade_photos
 
 
-def load_data_prediction_3D(data_dir, img_width=128, img_height=128, img_depth=128, mb=[2, 2, 2]):
+def load_data_prediction_3D(data_dir, img_width=128, img_height=128, img_depth=128, mb=[3, 3, 2]):
 
         # Get all .h5 files containing training images
     facade_photos_h5 = sorted(os.listdir(os.path.join(data_dir)))
 
 #     facade_labels_h5 = [f for f in os.listdir(os.path.join(data_dir_path, 'facades')) if '.h5' in f]
 
-#    dx = 320
-#    dy = 320
-#    dz = 168
+    dx = 320
+    dy = 320
+    dz = 175
 
-    dx = 240
-    dy = 240
-    dz = 155
+#     dx = 240
+#     dy = 240
+#     dz = 155
 
     final_facade_photos = None
     
@@ -486,7 +491,7 @@ def save_images_3D(real_images, real_sketches, generated_images, dict_val, num_e
         nib.save(im2save, '{2}/results_im/{0}_epoch_{1}.nii.gz'.format(names[n_image], num_epoch, dset))
 
 
-def save_prediction_3D(generated_images, dict_val):
+def save_prediction_3D(generated_images, dict_val, binarize=False):
     
     n_images = len(dict_val)
     batches = generated_images.shape[0]//n_images
@@ -503,9 +508,44 @@ def save_prediction_3D(generated_images, dict_val):
                     k += 1
         final_image[final_image==-2] = np.nan
         final_image = np.nanmean(final_image, axis=3)
+        final_image = final_image.astype(np.float32)
         original_dim = dict_val[n]['orig_dim']
-        final_image = resize(final_image.astype(np.float32), (original_dim[0], original_dim[1], original_dim[2]), order=3, mode='edge', cval=0,
-                                    anti_aliasing=False)
-        final_image = inverse_normalize_array_max(final_image.astype(np.float32), dict_val[n]['max_photos'])
+        if tuple(final_image.shape) != original_dim:
+            final_image = resize(final_image, (original_dim[0], original_dim[1], original_dim[2]), order=3, mode='edge', cval=0,
+                                 anti_aliasing=False)
+        if binarize:
+            final_image = binarization(final_image)
+        try:
+            final_image = inverse_normalize_array_max(final_image, dict_val[n]['max_photos'])
+        except KeyError:
+            pass
         im2save = nib.Nifti1Image(final_image, affine=dict_val[n]['orig_affine'])
         nib.save(im2save, dict_val[n]['name'])
+
+
+def save_prediction_2D(generated_images, dict_val, binarize=False):
+    
+    n_images = len(dict_val)
+    batches = generated_images.shape[0]//n_images
+    for n in range(n_images):
+        im_shape = dict_val[n]['im_size']
+        indexes = dict_val[n]['indexes']
+        image = generated_images[n*batches:(n+1)*batches, :]
+        final_image = np.zeros((im_shape[0], im_shape[1], batches), dtype=np.float16)-2
+        k = 0
+        for j in indexes[1]:
+            for i in indexes[0]:
+                final_image[i[0]:i[1], j[0]:j[1], k] = image[k, :, :, 0]
+                k += 1
+        final_image[final_image==-2] = np.nan
+        final_image = np.nanmean(final_image, axis=2)
+        final_image[np.isnan(final_image)] = 0
+        final_image = final_image.astype(np.float32)
+        original_dim = dict_val[n]['orig_dim']
+        if tuple(final_image.shape) != original_dim:
+            final_image = resize(final_image, (original_dim[0], original_dim[1]), order=3, mode='edge', cval=0,
+                                 anti_aliasing=False)
+        if binarize:
+            final_image = binarization(final_image)
+
+        return final_image

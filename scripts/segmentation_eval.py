@@ -2,8 +2,8 @@ import nibabel as nib
 import numpy as np
 import glob
 import matplotlib.pyplot as plot
-from core.process.postprocess import eucl_max
-from core.utils.plot import violin_box_plot
+from basecore.process.postprocess import eucl_max
+from basecore.utils.plot import violin_box_plot
 
 
 def dice_calculation(gt, seg):
@@ -50,7 +50,7 @@ def outliers_modified_z_score(ys):
 # segs = sorted(glob.glob('/home/fsforazz/Desktop/mouse_segmentation_results/*.nii.gz'))
 with open('/home/fsforazz/Desktop/all_refs.txt', 'r') as f:
     refs = [x.strip() for x in f]
-with open('/home/fsforazz/Desktop/all_cnns.txt', 'r') as f:
+with open('/mnt/sdb/mouse_data_prep_cheng/cnn_cv.txt', 'r') as f:
     segs = [x.strip() for x in f]
 
 all_dices = []

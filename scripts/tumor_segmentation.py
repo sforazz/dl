@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from keras import callbacks as cbks
 
 # base_dir = '/mnt/sdb/BRATS2015_Training/HGG/single_patch_data/'
-base_dir = '/data/data_segmentation/'
+base_dir = '/mnt/sdb/nnUnet/data_training/nnUNet_raw/Task01_GTV/'
 #os.chdir('/home/fsforazz/git/Unet-ants/code')
 
 # local imports
@@ -43,7 +43,7 @@ target_tx = tx.Compose([tx.LambdaTransform(fn),
 # use a co-transform, meaning the same transform will be applied to input+target images at the same time 
 # this is necessary since Affine transforms have random parameter draws which need to be shared
 dataset = CSVDataset(filepath=data_dir+'image_filemap.csv',
-                     base_path='/data/data_segmentation/new_data/', # this path will be appended to all of the filenames in the csv file
+                     base_path='/mnt/sdb/nnUnet/data_training/nnUNet_raw/Task01_GTV/', # this path will be appended to all of the filenames in the csv file
                      input_cols=['Images'], # column in dataframe corresponding to inputs (can be an integer also)
                      target_cols=['Segmentations'])
 
@@ -60,7 +60,7 @@ dataset = CSVDataset(filepath=data_dir+'image_filemap.csv',
 val_data, train_data = dataset.split_by_column('TrainTest')
 
 # create a dataloader .. this is basically a keras DataGenerator -> can be fed to `fit_generator`
-batch_size = 10
+batch_size = 1
 train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 val_loader = DataLoader(val_data, batch_size=batch_size, shuffle=True)
 
@@ -69,7 +69,7 @@ val_loader = DataLoader(val_data, batch_size=batch_size, shuffle=True)
 
 n_labels = train_data[0][1].shape[-1]
 # create model
-model = create_unet_model3D(input_image_size=train_data[0][0].shape, n_labels=n_labels, layers=4,
+model = create_unet_model3D(input_image_size=(128,128,128,1), n_labels=n_labels, layers=4,
                             mode='classification')
 # model = unet_model_3d(train_data[0][0].shape)
 

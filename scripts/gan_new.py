@@ -66,9 +66,9 @@ def train(**kwargs):
         np.save(os.path.join(dset, 'validation_T1.npy'), X_full_val)
         np.save(os.path.join(dset, 'validation_FLAIR.npy'), X_sketch_val)
     img_dim = X_full_train.shape[-3:]
-
+    img_dim_disc = (img_dim[0], img_dim[1], 2)
     # Get the number of non overlapping patch and the size of input image to the discriminator
-    nb_patch, img_dim_disc = data_utils.get_nb_patch(img_dim, patch_size, image_data_format)
+    nb_patch, img_dim_disc = data_utils.get_nb_patch(img_dim_disc, patch_size, image_data_format)
 
     try:
 
@@ -95,7 +95,7 @@ def train(**kwargs):
                                           do_plot)
 
         generator_model.compile(loss='mae', optimizer=opt_discriminator)
-        generator_model.load_weights('/mnt/sdb/logs_gan/models/double_gen_train_loss_300_right_ds/gen_weights_epoch400.h5')
+#         generator_model.load_weights('/mnt/sdb/logs_gan/models/double_gen_train_loss_300_right_ds/gen_weights_epoch400.h5')
         discriminator_model.trainable = False
 
         DCGAN_model = models.DCGAN(generator_model,
@@ -110,7 +110,7 @@ def train(**kwargs):
 
         discriminator_model.trainable = True
         discriminator_model.compile(loss='binary_crossentropy', optimizer=opt_discriminator)
-        discriminator_model.load_weights('/mnt/sdb/logs_gan/models/double_gen_train_loss_300_right_ds/disc_weights_epoch400.h5')
+#         discriminator_model.load_weights('/mnt/sdb/logs_gan/models/double_gen_train_loss_300_right_ds/disc_weights_epoch400.h5')
 
         gen_loss = 100
         disc_loss = 100

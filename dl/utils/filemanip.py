@@ -41,6 +41,11 @@ def get_nifti(image_path, labels=False, method='mouse_fibrosis'):
             mask_name = 'MR_FLAIR_reg_bet_vol_'+mask_vol
             mask_path = os.path.join(path, mask_name)
             img = nib.load(mask_path).get_data()
+        elif method == 'human':
+            mask_vol = filename.split('_vol')
+            mask_name = mask_vol[0]+'_lungs_vol'+mask_vol[1]
+            mask_path = os.path.join(path, mask_name)
+            img = nib.load(mask_path).get_data()
         else:
             img_number = filename.split('.')[0].split('_')[1]
             slice_number = filename.split('.')[0].split('_')[2]

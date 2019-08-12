@@ -2,6 +2,9 @@ import nibabel as nib
 import numpy as np
 from sklearn.model_selection import train_test_split
 import os
+import cv2
+from basecore.utils.filemanip import split_filename
+import nrrd
 
 
 def data_preparation(images, labels=None, preproc='zscore'):
@@ -47,33 +50,83 @@ def data_preparation(images, labels=None, preproc='zscore'):
 
 def save_results(im2save, ref, save_dir=None):
     
-    basedir, basename = os.path.split(ref)
-    out_basename = basename.split('.')[0]+'_lung_seg.nii.gz'
+#     basedir, basename = os.path.split(ref)
+    basedir, basename, ext = split_filename(ref)
+    out_basename = basename.split('.')[0]+'_lung_seg'+ext
     if save_dir is not None:
         outname = os.path.join(save_dir, out_basename)
     else:
         outname = os.path.join(basedir, out_basename)
     
+    if ext == '.nii' or ext == '.nii.gz':
+        ref = nib.load(ref)
+        im2save = nib.Nifti1Image(im2save, ref.affine)
+        nib.save(im2save, outname)
+    elif ext == '.nrrd':
+        _, ref_hd = nrrd.read(ref)
+        nrrd.write(outname, im2save, header=ref_hd)
+    else:
+        raise Exception('Extension "{}" is not recognize!'.format(ext))
 
-    ref = nib.load(ref)
+    return outname
 
-    image = im2save[:, 10:, 10:]
-    image = image.reshape(-1, 86, 86)
+
+def postprocessing(im2save, method='mouse_fibrosis'):
+
+    if method == 'mouse_fibrosis':
+        image = im2save[:, 10:, 10:]
+        image = image.reshape(-1, 86, 86)
+    elif method == 'gtv':
+        image_old = im2save.reshape(-1, 128, 128)
+        image = np.zeros((image_old.shape[0], 512, 512))
+        for z in range(image.shape[0]):
+            image[z, :, :] = cv2.resize(image_old[z, :, :], (512, 512), interpolation=cv2.INTER_AREA)
+    elif method=='human':
+        image_old = im2save[:, 10:, 10:]
+        image_old = image_old.reshape(-1, 86, 86)
+        image_old = image_old.reshape(-1, 86, 86)
+        image = np.zeros((image_old.shape[0], 512, 512))
+        for z in range(image.shape[0]):
+            image[z, :, :] = cv2.resize(image_old[z, :, :], (512, 512), interpolation=cv2.INTER_AREA)
+        
     image = np.swapaxes(image, 0, 2)
     image = np.swapaxes(image, 0, 1)
-    im2save = nib.Nifti1Image(image, ref.affine)
-    nib.save(im2save, outname)
+
+    return image
 
 
-def preprocessing(image, label=False):
+def preprocessing(image, label=False, method='mouse_fibrosis'):
     
     image = image.astype('float64')
-    image = image.reshape(86, 86, 1)
-    if not label:
-        image -= np.min(image)
-        image /= (np.max(image)-np.min(image))
-    temp = np.zeros([96, 96, 1])
-    temp[10:,10:,:] = image
-    image = temp
+    if method == 'mouse_fibrosis' or method == 'micro_ct':
+        image = image.reshape(86, 86, 1)
+        if not label:
+            image -= np.min(image)
+            image /= (np.max(image)-np.min(image))
+        temp = np.zeros([96, 96, 1])
+        temp[10:,10:,:] = image
+        image = temp
+    elif method == 'human':
+#         image = image[300:386, 300:386]
+        image = cv2.resize(image[:, :], (86, 86),interpolation=cv2.INTER_AREA)
+        image = image.reshape(86, 86, 1)
+        if not label:
+            image -= np.min(image)
+            image /= (np.max(image)-np.min(image))
+        temp = np.zeros([96, 96, 1])
+        temp[10:,10:,:] = image
+        image = temp
+    elif method == 'gtv':
+#         image = cv2.resize(image[:, :], (128, 128),interpolation=cv2.INTER_AREA)
+        image = image.reshape(512, 512, 1)
+        if not label:
+            image -= np.min(image)
+            image /= (np.max(image)-np.min(image))
+    elif method == 'flair_reg':
+        image = cv2.resize(image[:, :], (128, 128),interpolation=cv2.INTER_AREA)
+        image = image.reshape(128, 128, 1)
+        if not label:
+            image -= np.min(image)
+            image /= (np.max(image)-np.min(image))
     
     return image

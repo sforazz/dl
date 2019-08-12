@@ -59,9 +59,9 @@ def train(**kwargs):
             np.save(os.path.join(dset, 'training_ref_tot.npy'), X_full_train)
             np.save(os.path.join(dset, 'training_target_tot.npy'), X_sketch_train)
         img_dim = X_full_train.shape[-4:]
-    
+        img_dim_disc = (img_dim[0], img_dim[1], img_dim[2], 2)
         # Get the number of non overlapping patch and the size of input image to the discriminator
-        nb_patch, img_dim_disc = data_utils.get_nb_patch_3D(img_dim, patch_size, image_data_format)
+        nb_patch, img_dim_disc = data_utils.get_nb_patch_3D(img_dim_disc, patch_size, image_data_format)
     else:
         try:
             data_full = [x for x in os.listdir(dset) if x.endswith('.npy') and 'T1' in x and 'edge' not in x]

@@ -57,7 +57,7 @@ def launch_prediction(**kwargs):
     prediction(**kwargs)
 
 
-d_params = {"dset": '/mnt/sdb/data_T1_to_FLAIR_normalized/test_3D', #"/mnt/sdb/brats_normalized/",
+d_params = {"dset": '/mnt/sdb/data_T1_to_FLAIR_normalized_new/test_3D', #"/mnt/sdb/brats_normalized/",
             "generator": 'upsampling',
             "batch_size": 3,
             "image_data_format": "channels_last",
@@ -65,7 +65,8 @@ d_params = {"dset": '/mnt/sdb/data_T1_to_FLAIR_normalized/test_3D', #"/mnt/sdb/b
             "img_dim": 256,
             "patch_size": (32, 32),
             "use_mbd": True,
-            "weights": '/mnt/sdb/data_T1_to_FLAIR_normalized/gen_weights_epoch170.h5'
+            #"weights": '/mnt/sdb/data_T1_to_FLAIR_normalized_new/gen_weights_epoch40_no_sobel.h5'
+             "weights": '/mnt/sdb/data_T1KM_to_FLAIR/gen_weights_epoch200_multi_ds.h5'
             }
 
 launch_prediction(**d_params)

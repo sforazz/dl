@@ -66,6 +66,12 @@ def normalize_array_max(array):
     return array, max_value
 
 
+def normalize_min_max(image):
+    image -= np.min(image)
+    if (np.max(image)-np.min(image)) > 0:
+        image /= (np.max(image)-np.min(image))
+    return image
+
 def sobel_3D(image):
     
     if len(image.shape) > 3:
