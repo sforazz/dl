@@ -38,7 +38,7 @@ pkgs, new_links = install_deps()
 setup(name='deep_learning',
       version='1.0',
       description='Deep learning utilities',
-      url='https://github.com/sforazz/deep_learning.git',
+      url='https://github.com/sforazz/dl.git',
       python_requires='>=3.5',
       author='Francesco Sforazzini',
       author_email='f.sforazzini@dkfz.de',
