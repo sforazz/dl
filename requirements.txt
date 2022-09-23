@@ -19,7 +19,7 @@ networkx==2.2
 nibabel==2.3.3
 numpy==1.16.0
 Pillow==5.4.1
-protobuf==3.6.1
+protobuf==3.18.3
 pyparsing==2.3.1
 python-dateutil==2.7.5
 PyWavelets==1.0.1
